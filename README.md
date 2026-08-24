@@ -51,6 +51,7 @@ ROM 输入与 sparse 容器往返可信；尚未进行 ext4 文件级重建，�
 - [08：音频组件分类与 Phase 1 收口](docs/08-AUDIO-COMPONENT-CLASSIFICATION-V0.2.md)
 - [09：Phase 2 播放器 Shell 原型路书](docs/09-PHASE-2-PLAYER-SHELL-RUNBOOK.md)
 - [10：Phase 3 MIUI 原型固件构建器路书](docs/10-PHASE-3-MIUI-BUILDER-RUNBOOK.md)
+- [11：Phase 3 Gate 1 ext4 元数据审计契约](docs/11-PHASE-3-GATE1-EXT4-AUDIT-CONTRACT.md)
 - [Phase 2 基线冻结记录](docs/reviews/2026-08-24-phase2-baseline-freeze.md)
 - [Phase 3 Gate 0 评审](docs/reviews/2026-08-24-phase3-gate0.md)
 - [产品愿景与命名](docs/VISION.md)

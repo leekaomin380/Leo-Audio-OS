@@ -94,3 +94,6 @@ Spotify、耳机 HiFi、温度和恢复测试。音频闭包、PackageManager �
 ## 7. 当前下一步
 
 Gate 0 已通过。随后准备受控 Linux ext4 审计环境，进入 Gate 1。
+
+Gate 1 的双证据工具链、机器清单、硬性一致项和允许变化项已经固化于
+[`11-PHASE-3-GATE1-EXT4-AUDIT-CONTRACT.md`](11-PHASE-3-GATE1-EXT4-AUDIT-CONTRACT.md)。
