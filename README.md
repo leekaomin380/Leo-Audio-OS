@@ -39,6 +39,7 @@ Leo Audio OS 是一个面向 Xiaomi Mi Note Pro（代号 `leo`）的长期开放
 
 - [01：可利用资源地图](docs/01-RESOURCE-MAP.md)
 - [02：工程学习与协作方式](docs/02-ENGINEERING-LEARNING-MODE.md)
+- [03：原厂音频依赖闭包](docs/03-AUDIO-DEPENDENCY-CLOSURE.md)
 - [产品愿景与命名](docs/VISION.md)
 - [初始系统架构](docs/ARCHITECTURE.md)
 - [长期路线图](docs/ROADMAP.md)
