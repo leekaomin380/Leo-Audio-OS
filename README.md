@@ -13,7 +13,7 @@ Leo Audio OS 是一个面向 Xiaomi Mi Note Pro（代号 `leo`）的长期开放
 
 ## 当前状态
 
-项目处于 **Phase 1：音频依赖闭包**。
+项目已经完成 **Phase 1：音频依赖闭包 v0.2**，下一步进入 Phase 2 播放器 Shell 原型。
 
 - 还没有可供刷入的 Leo Audio OS 固件；
 - 当前实机仍运行已验证的 MIUI 9 HiFi 播放器方案；
@@ -45,6 +45,7 @@ Leo Audio OS 是一个面向 Xiaomi Mi Note Pro（代号 `leo`）的长期开放
 - [05：Stock Boot 与 DTB 审计](docs/05-STOCK-BOOT-DTB-AUDIT.md)
 - [06：原厂内核配置重建](docs/06-KERNEL-CONFIG-RECONSTRUCTION.md)
 - [07：原厂 SELinux 音频闭包](docs/07-STOCK-SELINUX-AUDIO-CLOSURE.md)
+- [08：音频组件分类与 Phase 1 收口](docs/08-AUDIO-COMPONENT-CLASSIFICATION-V0.2.md)
 - [产品愿景与命名](docs/VISION.md)
 - [初始系统架构](docs/ARCHITECTURE.md)
 - [长期路线图](docs/ROADMAP.md)

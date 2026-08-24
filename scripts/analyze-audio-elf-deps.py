@@ -90,6 +90,13 @@ def candidate_directories(source: str, arch: str) -> tuple[str, ...]:
 
 
 def resolve_library(root: Path, source: str, target: str, arch: str) -> str | None:
+    normalized = target.lstrip("/")
+    if normalized.startswith("system/"):
+        normalized = normalized.removeprefix("system/")
+    direct = root / normalized
+    if direct.is_file() and elf_arch(direct) == arch:
+        return str(direct.relative_to(root))
+
     target_name = Path(target).name
     for directory in candidate_directories(source, arch):
         candidate = root / directory / target_name
@@ -184,7 +191,7 @@ def analyze(root: Path, seeds: list[str], map_files: list[Path]) -> tuple[set[st
                 target_name = Path(target).name
                 if target_name in direct_needed:
                     continue
-                resolved = resolve_library(root, source, target_name, arch)
+                resolved = resolve_library(root, source, target, arch)
                 edges.add(Edge(source, "string-ref", target, resolved or "", arch,
                                "candidate" if resolved else "unresolved-candidate"))
 

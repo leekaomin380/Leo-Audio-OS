@@ -7,6 +7,8 @@ services. It also records library names embedded in the explicit seed binaries a
 (possible `dlopen` or plugin edges), and libraries observed in captured process maps. A
 string reference is deliberately labelled as a candidate rather than a confirmed runtime
 dependency; each runtime edge retains the process name that supplied the observation.
+Embedded `/system/...`, `system/...` and `system/vendor/...` paths are normalized before
+architecture-aware resolution, so an absolute string path is not misreported as missing.
 
 The expanded stock system tree and the detailed TSV output belong under
 `resources/private/`, which is excluded from Git. Example:
@@ -70,6 +72,15 @@ The live collector also records any currently open ALSA PCM parameters and filte
 kernel AVC messages to the four audio-support source domains. An empty
 `audio-domain-avc.txt` means no matching denial was present in the retained kernel log; it
 does not prove that older, rotated-out messages never existed.
+
+## `verify-audio-classification.py`
+
+Validates the v0.2 public component manifest: exact columns, unique component IDs, approved
+classification/action vocabulary, required evidence fields, and basic safety invariants.
+
+```sh
+python3 scripts/verify-audio-classification.py
+```
 
 本目录将保存只读采集、依赖分析、构建、校验、签名和恢复工具。任何执行分区写入的
 工具都必须默认拒绝运行，直到型号、构建、哈希、目标分区和恢复材料全部通过检查。
