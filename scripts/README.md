@@ -98,6 +98,14 @@ python3 scripts/verify-audio-classification.py
 - `verify-stock-ext4-source.py`：只对 profile 锁定的原厂 raw 接受已裁定的 Android 7
   inode bitmap padding 偏差。raw hash、geometry、完整 fsck 输出或 padding 任一不符即失败，
   且该例外不得用于 Gate 2 产物。
+- `collect-ext4-semantic.py`：不挂载镜像，直接解析 ext4 inode、extent、目录项和 xattr，
+  写入内容哈希与原始安全元数据清单；遇到未实现的 ext4 结构会失败，不会静默漏项。
+- `verify-ext4-semantic-manifest.py`：校验私有语义清单的路径编码、顺序、类型、摘要统计，
+  并逐项对照公开音频兼容性 manifest 的原厂文件哈希。
+- `audit-ext4-kernel-view.sh`：仅在隔离 Linux 容器中临时以 `ro,noload` 挂载 raw image，
+  用内核 `lstat`/xattr 视图生成第二份清单，并要求与主清单逐字节一致后才通过。
+- `derive-android-metadata.py`：从原始语义清单导出可审阅的 `fs_config` 候选与实际
+  SELinux 标签表；它不替代原始 `file_contexts` 策略来源。
 
 ## 当前工具
 

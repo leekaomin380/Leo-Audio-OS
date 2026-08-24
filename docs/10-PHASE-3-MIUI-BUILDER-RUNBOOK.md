@@ -43,14 +43,15 @@ Gate 0 只证明 Android sparse 容器工具链，不证明 ext4 文件级重建
 
 ### Gate 1 — ext4 只读审计
 
-- [ ] 校验 ext4 superblock、features、UUID、inode/block 参数和空间使用；
-- [ ] 导出完整路径、类型、模式、UID/GID、capabilities、符号链接和 xattrs；
-- [ ] 解码并保存 SELinux file contexts 来源；
-- [ ] 核对原厂 system 哈希清单与 Phase 1 音频闭包；
-- [ ] 计算文件级重建所需最小磁盘预算。
+- [x] 校验 ext4 superblock、features、UUID、inode/block 参数和空间使用；
+- [x] 导出完整路径、类型、模式、UID/GID、capabilities、符号链接和 xattrs；
+- [~] 保存全部现有路径的实际 SELinux 标签；原厂 `file_contexts` 正则源仍待恢复或构造
+  等价输入；
+- [x] 核对原厂 system 哈希清单与 Phase 1 音频闭包；
+- [x] 记录文件级重建的当前空间事实：数据卷约 30 GiB 可用，Gate 1 私有材料约 3.0 GiB。
 
-Gate 1 需要 Linux/e2fsprogs 或等价受控环境。当前 macOS 只有 sparse 工具和 mke2fs，
-不能据此声称已保存全部 ext4 元数据。
+Gate 1 已由无挂载 direct-ext4 解析和 Linux `ro,noload` 内核视图双重验证。详情见
+[`2026-08-24-phase3-gate1-semantic-audit.md`](reviews/2026-08-24-phase3-gate1-semantic-audit.md)。
 
 ### Gate 2 — 无修改文件级重建
 
@@ -93,7 +94,6 @@ Spotify、耳机 HiFi、温度和恢复测试。音频闭包、PackageManager �
 
 ## 7. 当前下一步
 
-Gate 0 已通过。随后准备受控 Linux ext4 审计环境，进入 Gate 1。
-
-Gate 1 的双证据工具链、机器清单、硬性一致项和允许变化项已经固化于
-[`11-PHASE-3-GATE1-EXT4-AUDIT-CONTRACT.md`](11-PHASE-3-GATE1-EXT4-AUDIT-CONTRACT.md)。
+Gate 1 的双证据工具链、机器清单、硬性一致项和允许变化项已通过。下一步是 Gate 2 的
+无修改重建设计：先解决可验证 SELinux labeling 输入，再建立固定的 ext4 构建器与逐项
+语义比较；在此之前不生成候选 ROM，更不写入设备。

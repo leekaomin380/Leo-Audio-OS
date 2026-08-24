@@ -20,11 +20,13 @@ Unix DAC、硬链接、符号链接、扩展属性、Linux capabilities 和 SELi
 - `e2fsck -f -n`：只读一致性检查；
 - `dumpe2fs -h`：superblock、features、UUID、inode/block 参数；
 - `debugfs -R stats`：文件系统结构复核；
-- `debugfs` 递归目录、inode `stat` 与 `ea_list/ea_get`：目录项、inode 和 xattr。
+- 受控的 direct-ext4 collector：递归目录、inode、硬链接、文件哈希与原始 xattr。
 
 这一条路径不挂载镜像，不需要 `CAP_SYS_ADMIN`，也不向 raw image 写入日志或恢复信息。
-[`debugfs(8)`](https://man7.org/linux/man-pages/man8/debugfs.8.html)明确提供递归目录、inode
-状态和扩展属性读取命令。
+`debugfs` 保留为 superblock、root directory 与抽样 inode 的独立复核；完整清单由直接读取
+ext4 inode、extent、directory entry 与 xattr 二进制结构的采集器生成，从而不会把 xattr 的
+显示转义误当作原始值。[`debugfs(8)`](https://man7.org/linux/man-pages/man8/debugfs.8.html)
+仍作为该交叉复核的官方接口说明。
 
 ### B. Linux 内核只读视图：交叉证据
 
@@ -77,6 +79,10 @@ Gate 1 环境必须记录并锁定：
 主审计容器默认无网络、无设备映射、无 ADB/fastboot、无特权能力。raw image 只读绑定，
 报告目录单独可写。B 路径若需要内核挂载，必须在隔离 Linux VM/容器中单独运行，不能把
 整个项目目录以可写方式交给特权环境。
+
+当前 macOS 的容器运行时要求 `--privileged` 才能建立 loop mount；这不是对项目目录或
+手机授予写入权限。B 路径只绑定一个 raw image 为只读输入和一个空报告目录为可写输出，
+同时禁止网络、只读容器根、以 `ro,noload` 挂载，并要求内核报告 `ro` 与 `norecovery`。
 
 ## 5. 机器清单
 

@@ -32,6 +32,9 @@ docker run --rm \
   --tmpfs /tmp:rw,noexec,nosuid,size=128m \
   --mount "type=bind,src=$raw_image,dst=/input/system.raw,readonly" \
   --mount "type=bind,src=$report_dir,dst=/output" \
+  --mount "type=bind,src=$script_dir/collect-ext4-semantic.py,dst=/collector.py,readonly" \
+  --mount "type=bind,src=$script_dir/verify-ext4-semantic-manifest.py,dst=/semantic-validator.py,readonly" \
+  --mount "type=bind,src=$repo_root/manifests/audio-compatibility-v0.1.tsv,dst=/audio-compatibility.tsv,readonly" \
   --env "LEO_EXT4_AUDIT_IMAGE=$image" \
   --env "LEO_EXT4_AUDIT_IMAGE_ID=$image_id" \
   --entrypoint /bin/sh \
@@ -52,6 +55,13 @@ docker run --rm \
     dumpe2fs -g "$raw" >"$out/group-layout.txt" 2>&1
     debugfs -R stats "$raw" >"$out/debugfs-stats.txt" 2>&1
     debugfs -R "ls -p -l /" "$raw" >"$out/debugfs-root.txt" 2>&1
+    PYTHONDONTWRITEBYTECODE=1 python3 /collector.py --raw "$raw" --output "$out/semantic"
+    PYTHONDONTWRITEBYTECODE=1 python3 /semantic-validator.py \
+      --entries "$out/semantic/entries.jsonl" \
+      --summary "$out/semantic/audit-summary.json" \
+      --audio-manifest /audio-compatibility.tsv \
+      --output "$out/semantic/validation.json" \
+      --audio-output "$out/semantic/audio-compatibility-check.json"
   '
 
 python3 "$script_dir/verify-stock-ext4-source.py" \
@@ -60,6 +70,10 @@ python3 "$script_dir/verify-stock-ext4-source.py" \
   --e2fsck-report "$report_dir/e2fsck.txt" \
   --e2fsck-status "$report_dir/e2fsck-status.txt" \
   --output "$report_dir/source-verdict.json"
+python3 "$script_dir/derive-android-metadata.py" \
+  --entries "$report_dir/semantic/entries.jsonl" \
+  --fs-config-output "$report_dir/semantic/fs-config-derived.tsv" \
+  --selinux-output "$report_dir/semantic/selinux-labels.tsv"
 
 (
   cd "$report_dir"
@@ -70,6 +84,13 @@ python3 "$script_dir/verify-stock-ext4-source.py" \
     e2fsck.txt \
     group-layout.txt \
     raw-system.sha256 \
+    semantic/audit-summary.json \
+    semantic/audio-compatibility-check.json \
+    semantic/entries.jsonl \
+    semantic/fs-config-derived.tsv \
+    semantic/hardlinks.json \
+    semantic/selinux-labels.tsv \
+    semantic/validation.json \
     source-verdict.json \
     superblock.txt \
     toolchain.txt >SHA256SUMS

@@ -24,8 +24,15 @@ scripts/extract-stock-system-raw.py \
 scripts/audit-ext4-primary.sh \
   resources/private/phase3-gate1/input/system.raw.img \
   resources/private/phase3-gate1/primary-report
+scripts/audit-ext4-kernel-view.sh \
+  resources/private/phase3-gate1/input/system.raw.img \
+  resources/private/phase3-gate1/primary-report/semantic \
+  resources/private/phase3-gate1/kernel-report
 ```
 
 该审计容器没有网络、不挂载 raw system，也不会调用 ADB 或 fastboot。锁定的原厂 raw
 存在一项 Android 7 `make_ext4fs` inode bitmap padding 遗留偏差；脚本会把它严格登记为
 `accepted_source_deviation`，不会把该镜像误报为 `clean`，也不会把例外传给 Gate 2。
+
+第二条命令只在隔离 Linux 容器内以 `ro,noload` 临时挂载只读绑定的 raw image，运行后会
+卸载；它不访问设备，也不向 raw image 写入 journal 或任何元数据。
