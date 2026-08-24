@@ -85,6 +85,13 @@ python3 scripts/verify-audio-classification.py
 本目录将保存只读采集、依赖分析、构建、校验、签名和恢复工具。任何执行分区写入的
 工具都必须默认拒绝运行，直到型号、构建、哈希、目标分区和恢复材料全部通过检查。
 
+## Phase 3 Gate 0
+
+- `inspect-stock-fastboot-rom.py`：只读校验锁定 ROM 的文件名、SHA-256、tar 路径、必需
+  成员、Android sparse header、system 物理容量和 persist 不写边界；
+- `roundtrip-stock-system.py`：执行 sparse → raw → sparse → raw，并要求两个 raw 镜像
+  逐字节哈希相等。它不进行 ext4 文件级重建，也不调用 fastboot。
+
 ## 当前工具
 
 - `collect-audio-baseline.sh`：仅接受一台已授权、代号为 `leo` 且可获得 Root 的设备，
