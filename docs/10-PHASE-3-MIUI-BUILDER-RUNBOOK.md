@@ -55,6 +55,7 @@ Gate 1 已由无挂载 direct-ext4 解析和 Linux `ro,noload` 内核视图双�
 
 ### Gate 2 — 无修改文件级重建
 
+- [x] 锁定 builder、Android metadata、旧内核 feature set 与 verified-boot 架构；
 - [ ] 从只读清单重建 ext4；
 - [ ] 保持分区容量，不扩大 system；
 - [ ] 比较路径、内容哈希、权限、所有者、链接、xattrs、capabilities 和 SELinux 标签；
@@ -78,7 +79,7 @@ Spotify、耳机 HiFi、温度和恢复测试。音频闭包、PackageManager �
 
 ## 5. 空间与环境
 
-当前数据卷约 17 GiB 可用。单次 sparse 容器往返峰值约 6.6 GiB，可以执行，但完成后
+当前数据卷约 30 GiB 可用。单次 sparse 容器往返峰值约 6.6 GiB，可以执行，但完成后
 必须删除明确命名的临时镜像，只保留报告。文件级重建和多版本对照需要更充足的工作盘；
 完整 Android 平台构建仍不在当前空间预算内。
 
@@ -94,6 +95,7 @@ Spotify、耳机 HiFi、温度和恢复测试。音频闭包、PackageManager �
 
 ## 7. 当前下一步
 
-Gate 1 的双证据工具链、机器清单、硬性一致项和允许变化项已通过。下一步是 Gate 2 的
-无修改重建设计：先解决可验证 SELinux labeling 输入，再建立固定的 ext4 构建器与逐项
-语义比较；在此之前不生成候选 ROM，更不写入设备。
+Gate 1 的双证据工具链已通过，Gate 2 的 labeling、ext4 builder 与 verified-boot 双轨边界
+也已由 [`12-PHASE-3-GATE2-UNMODIFIED-REBUILD-CONTRACT.md`](12-PHASE-3-GATE2-UNMODIFIED-REBUILD-CONTRACT.md)
+锁定。下一步是机械实现：固定容器、生成 staging/metadata 输入、完成两次本机构建和逐项
+语义比较；在此之前不生成可刷入 ROM，更不写入设备。

@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "device": "leo",
+  "source_build": "V9.2.3.0.NXHCNEK",
+  "classification": "phase3_gate2_unmodified_rebuild",
+  "source": {
+    "rom_sha256": "007d3d7d9a7e3e70684498070bab03ec145a73b1de44ed7299698cc4bf5ad94f",
+    "sparse_system_sha256": "03960aeded4f6b3c7802109ff74aedec67c5de15841bf175ace66a89cde36003",
+    "partition_raw_sha256": "ec6edfd79adb1f6053adcc6fcb1927fabd93fe3756d9e7c7af8a7abd0dcd3e7d",
+    "partition_size_bytes": 1744830464,
+    "partition_blocks": 425984,
+    "block_size": 4096,
+    "ext4": {
+      "block_count": 419329,
+      "inode_count": 104832,
+      "inode_size": 256,
+      "block_groups": 13,
+      "blocks_per_group": 32768,
+      "inodes_per_group": 8064,
+      "reserved_gdt_blocks": 103,
+      "journal_blocks": 6552,
+      "journal_features": [],
+      "filesystem_flags": [
+        "unsigned_directory_hash"
+      ],
+      "default_directory_hash": "tea"
+    }
+  },
+  "source_layout": [
+    {
+      "name": "ext4",
+      "start_block": 0,
+      "block_count": 419329,
+      "sha256": "786cd054e489d135cb47ab402cbf518014b0592d1afbaad44864d92154030293"
+    },
+    {
+      "name": "dm_verity_hash_tree",
+      "start_block": 419329,
+      "block_count": 3304,
+      "sha256": "90bf3e38b94b6fa18e22a57a622d2ff5f43d1ae20f6090ee2794e4cf0c289e50"
+    },
+    {
+      "name": "dm_verity_metadata",
+      "start_block": 422633,
+      "block_count": 8,
+      "sha256": "3570a6cfeb020c930a56eaffea777c169188c381a0f32d9fb416e466e3c9ab64"
+    },
+    {
+      "name": "fec_payload",
+      "start_block": 422641,
+      "block_count": 3342,
+      "sha256": "8d781dad8f43912141fe890e997045e868dcb0d4a5fb77a31a2a6bf6611f106b"
+    },
+    {
+      "name": "fec_footer_block",
+      "start_block": 425983,
+      "block_count": 1,
+      "sha256": "493fdb8a476b943dde362a813b173ff12aaa9f7d9ed974742b0c31be14259fa1"
+    }
+  ],
+  "source_verified_boot": {
+    "fstab_fs_mgr_flags": "wait,verify",
+    "fstab_sha256": "b3b1fd1fe70139e8eb9ae8673dd8878b5eec098d39f9ad0333d5ad37d4031f7a",
+    "verity_key_sha256": "c2848b5e28fa9b7156a2910e2d6d333bbab3f6c2e00b3db4aaac2785679d7145",
+    "verity_metadata_magic": "0xb001b001",
+    "verity_table_length_bytes": 236,
+    "block_device": "/dev/block/bootdevice/by-name/system",
+    "data_blocks": 419329,
+    "hash_blocks": 419329,
+    "hash_algorithm": "sha256",
+    "root_hash": "ae95fea4b1220ff6fb08f3642d4e0ca02258a258b45f64b355ae411be6c56626",
+    "salt": "aee087a5be3b982978c923f566a94613496b417f2af592639bc80d141e34dfe7",
+    "fec_magic": "0xfecfecfe",
+    "fec_version": 0,
+    "fec_roots": 2,
+    "fec_input_size_bytes": 1731137536,
+    "fec_payload_size_bytes": 13688832
+  },
+  "development_boot_evidence": {
+    "classification": "magisk_patched_boot_verify_removed",
+    "fstab_fs_mgr_flags": "wait",
+    "fstab_sha256": "5776e1faa00c592e93891e07b99e0a0671b7d4eba8f86eb4b9338f9ec46cdf87",
+    "stock_kernel_section_sha256": "86e4e2af5441c95992219eb556ec839bfb7ce4aad8f34dc1bea9fcf99dcf0976",
+    "patched_kernel_section_sha256": "86e4e2af5441c95992219eb556ec839bfb7ce4aad8f34dc1bea9fcf99dcf0976"
+  },
+  "candidate": {
+    "classification": "development-unverified",
+    "builder": "pinned_mke2fs_plus_e2fsdroid",
+    "ext4_blocks": 419329,
+    "partition_blocks": 425984,
+    "post_ext4_policy": "zero_fill",
+    "device_write_authorized": false,
+    "ext4": {
+      "block_size": 4096,
+      "inode_count": 104832,
+      "inode_size": 256,
+      "label": "system",
+      "uuid": "da594c53-9beb-f85c-85c5-cedf76546f7a",
+      "reserved_block_count": 0,
+      "required_features": [
+        "has_journal",
+        "ext_attr",
+        "resize_inode",
+        "filetype",
+        "extent",
+        "sparse_super",
+        "large_file",
+        "uninit_bg"
+      ],
+      "forbidden_features": [
+        "64bit",
+        "metadata_csum",
+        "flex_bg",
+        "huge_file",
+        "dir_index"
+      ]
+    },
+    "timestamps": {
+      "root_ns": 0,
+      "lost_found_ns": 0,
+      "other_entries_ns": 1230739200000000000
+    },
+    "android_metadata": {
+      "mountpoint": "/system",
+      "fs_config_strategy": "exact_canned_entry_per_gate1_path",
+      "selinux_strategy": "closed_world_literal_rule_per_gate1_path",
+      "expected_entries": 3923,
+      "expected_selinux_xattrs": 3923,
+      "expected_capability_xattrs": 5
+    }
+  },
+  "mandatory_gates": {
+    "e2fsck_exit": 0,
+    "semantic_manifest_exact": true,
+    "phase1_audio_hashes": "17/17",
+    "two_build_semantic_identity": true,
+    "sparse_roundtrip_partition_raw_identity": true,
+    "stock_verity_tail_reuse_allowed": false,
+    "stock_verify_boot_pairing_allowed": false,
+    "adb_allowed": false,
+    "fastboot_allowed": false
+  }
+}
