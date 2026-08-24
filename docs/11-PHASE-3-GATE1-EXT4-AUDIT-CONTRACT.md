@@ -134,7 +134,9 @@ Gate 1 环境必须记录并锁定：
 - `security.selinux`；
 - `security.capability`；
 - Phase 1 `audio-compatibility-v0.1.tsv` 中全部文件的路径和 SHA-256；
-- 文件系统检查出现需要修改镜像才能修复的错误。
+- 文件系统检查出现需要修改镜像才能修复的错误；唯一例外是
+  `manifests/stock-system-ext4-profile-v0.1.json` 锁定原厂 raw 的已裁定 inode bitmap
+  padding 偏差。该例外必须报告为 `accepted_source_deviation`，不得报告为 `clean`。
 
 ## 7. 记录但不要求物理相同
 
@@ -148,6 +150,9 @@ Gate 1 环境必须记录并锁定：
 - sparse chunk 划分与 sparse 文件哈希；
 - atime 与 ctime；
 - ext4 allocation bitmap 的物理形态。
+
+锁定原厂 raw 的 inode bitmap padding 属于已登记的源输入物理偏差。Gate 2 可以且应当
+把它规范化为现代 ext4 表示；这不属于语义清单差异。
 
 允许它们变化不等于可以忽略。若变化导致分区超限、启动性能明显退化、文件丢失或
 fsck 异常，Gate 2 仍然失败。
@@ -173,6 +178,7 @@ Gate 1 应导出并由 Gate 2 显式消费：
 
 - 工具尝试以读写方式打开 raw system；
 - `e2fsck` 未使用 `-n`；
+- 非锁定原厂 raw 试图复用 source-only fsck 例外；
 - 主审计要求 root、设备映射或网络；
 - B 路径发生 journal replay；
 - 两条证据无法在路径或安全元数据上收敛；

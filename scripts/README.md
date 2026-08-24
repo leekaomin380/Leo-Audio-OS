@@ -91,6 +91,13 @@ python3 scripts/verify-audio-classification.py
   成员、Android sparse header、system 物理容量和 persist 不写边界；
 - `roundtrip-stock-system.py`：执行 sparse → raw → sparse → raw，并要求两个 raw 镜像
   逐字节哈希相等。它不进行 ext4 文件级重建，也不调用 fastboot。
+- `extract-stock-system-raw.py`：从已核验 ROM 提取 system sparse 并展开为私有 raw ext4
+  输入；展开完成即删除临时 sparse 文件；
+- `audit-ext4-primary.sh`：在缓存的、无网络、只读 Linux 容器中运行 `e2fsck -f -n`、
+  `dumpe2fs` 与 `debugfs`。它不挂载镜像，产出 Gate 1 主证据；
+- `verify-stock-ext4-source.py`：只对 profile 锁定的原厂 raw 接受已裁定的 Android 7
+  inode bitmap padding 偏差。raw hash、geometry、完整 fsck 输出或 padding 任一不符即失败，
+  且该例外不得用于 Gate 2 产物。
 
 ## 当前工具
 

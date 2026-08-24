@@ -14,3 +14,18 @@ scripts/roundtrip-stock-system.py \
 
 第二条命令只验证 Android sparse 容器往返。它不挂载、不修改 system，也不代表 ext4
 文件级重建已经通过。
+
+Gate 1 主证据（raw image 与报告均必须位于私有目录）：
+
+```sh
+scripts/extract-stock-system-raw.py \
+  --rom /private/path/to/stock-rom.tgz \
+  --work-dir resources/private/phase3-gate1/input
+scripts/audit-ext4-primary.sh \
+  resources/private/phase3-gate1/input/system.raw.img \
+  resources/private/phase3-gate1/primary-report
+```
+
+该审计容器没有网络、不挂载 raw system，也不会调用 ADB 或 fastboot。锁定的原厂 raw
+存在一项 Android 7 `make_ext4fs` inode bitmap padding 遗留偏差；脚本会把它严格登记为
+`accepted_source_deviation`，不会把该镜像误报为 `clean`，也不会把例外传给 Gate 2。

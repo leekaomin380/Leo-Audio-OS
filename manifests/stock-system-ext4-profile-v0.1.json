@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "device": "leo",
+  "source_build": "V9.2.3.0.NXHCNEK",
+  "source_rom_sha256": "007d3d7d9a7e3e70684498070bab03ec145a73b1de44ed7299698cc4bf5ad94f",
+  "source_sparse_system_sha256": "03960aeded4f6b3c7802109ff74aedec67c5de15841bf175ace66a89cde36003",
+  "raw_system": {
+    "sha256": "ec6edfd79adb1f6053adcc6fcb1927fabd93fe3756d9e7c7af8a7abd0dcd3e7d",
+    "size_bytes": 1744830464
+  },
+  "ext4": {
+    "block_count": 419329,
+    "block_size": 4096,
+    "features": [
+      "has_journal",
+      "ext_attr",
+      "resize_inode",
+      "filetype",
+      "extent",
+      "sparse_super",
+      "large_file",
+      "uninit_bg"
+    ],
+    "inode_count": 104832,
+    "inode_size": 256,
+    "inodes_per_group": 8064,
+    "label": "system",
+    "uuid": "da594c53-9beb-f85c-85c5-cedf76546f7a"
+  },
+  "source_only_known_deviation": {
+    "classification": "legacy_android_make_ext4fs_inode_bitmap_padding",
+    "e2fsck_exit": 4,
+    "message": "Padding at end of inode bitmap is not set.",
+    "active_inode_bitmap_block": 106,
+    "valid_bytes": 1008,
+    "zero_padding_bytes": 3088,
+    "gate2_output_may_reproduce": false
+  }
+}
