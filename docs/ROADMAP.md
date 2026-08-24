@@ -6,6 +6,7 @@
 - [x] 建立独立 Git 项目；
 - [x] 引用并锁定现有 `mi-note-pro-hifi-streamer` 基线版本；
 - [x] 登记官方 ROM、stock boot/recovery、Spotify splits 和音频文件哈希；
+- [x] 建立工程实施、同步讲解和并行研究的协作协议；
 - [ ] 将所有不可公开材料放入被 Git 忽略的私有目录。
 
 ## Phase 1 — 音频依赖闭包
