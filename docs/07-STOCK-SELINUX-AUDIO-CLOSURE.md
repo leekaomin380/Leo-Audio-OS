@@ -174,7 +174,9 @@ daemon 缺失”误推为“所有 DTS 数据和效果都无关”。删除仍�
 - 在第二代源码系统中，以专用类型替代通用 `system_file` 的闭源兼容性。
 
 H1 文件句柄和 AVC 对照已经完成：唯一新增目标是
-`audioserver → /dev/snd/pcmC0D0p`，四个音频域均未出现 denial。完整复核见
+`audioserver → /dev/snd/pcmC0D0p`；暂停并越过 standby 延迟后，该句柄关闭、所有 PCM
+回到 `closed`、QUAT MI2S 路由和时钟关闭。四个音频域在开启与关断阶段均未出现 denial。
+完整复核见
 [`reviews/2026-08-24-selinux-h1-runtime.md`](reviews/2026-08-24-selinux-h1-runtime.md)。
 下一阶段应转向冷启动、长播放、暂停恢复和 DSP 恢复证据；缩减厂商域权限必须留给
 具有完整回滚能力的测试构建。

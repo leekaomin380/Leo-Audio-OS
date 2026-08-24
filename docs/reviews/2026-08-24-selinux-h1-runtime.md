@@ -1,4 +1,4 @@
-# SELinux H1 播放状态复核
+# SELinux H1 与 H0-after 播放/暂停复核
 
 ## 结论
 
@@ -11,7 +11,8 @@ u:r:audioserver:s0 → /dev/snd/pcmC0D0p [audio_device]
 ```
 
 这把 stock policy 中 `audioserver → audio_device:chr_file` 的授权，从静态规则和空闲
-控制节点证据推进到真实 PCM 播放数据路径。
+控制节点证据推进到真实 PCM 播放数据路径。随后暂停并等待超过 AudioFlinger 的 3 秒
+standby 延迟，PCM 句柄、活动 hw_params 和 QUAT MI2S 路由均消失，关断路径同样闭合。
 
 ## 采集边界
 
@@ -21,11 +22,23 @@ u:r:audioserver:s0 → /dev/snd/pcmC0D0p [audio_device]
 - 私有证据：`resources/private/selinux-runtime/20260824-1806-H1/`；
 - 完整音频状态：`resources/private/runtime-states/20260824-180630-H1-selinux/`。
 
+暂停后的对应证据为：
+
+- `resources/private/selinux-runtime/20260824-1816-H0-after/`；
+- `resources/private/runtime-states/20260824-181652-H0-after-selinux/`。
+
 两个证据集合的 `SHA256SUMS` 文件哈希分别为：
 
 ```text
 cb20b507d68c21b9222eb2d2391431801758424849be4a5fc0b87f5ab536c285
 7637a30088c492062235d01c82e22321e9275f7c62695a8c40584415107edd06
+```
+
+H0-after 两个证据集合的对应哈希为：
+
+```text
+8c6a4f244a2d54c71556aa526e4877d4c77dd54c4469665f4c03973c97ee2306
+139047261c8dda410f67d3d6fc522c03151705dec5dc1003ba0228166a7ae326
 ```
 
 原始文件、进程映射和日志不进入公开 Git。
@@ -57,6 +70,20 @@ cb20b507d68c21b9222eb2d2391431801758424849be4a5fc0b87f5ab536c285
 它们与播放无关：它们可能通过启动时已建立的长期 FD、共享内存、ioctl 或 Binder 完成
 支撑，普通 FD 快照无法观察每次调用。
 
+## H0-after 关断对照
+
+暂停并越过 standby 延迟后：
+
+- `audioserver` 关闭 `/dev/snd/pcmC0D0p`，其余目标集合回到空闲基线；
+- 所有 ALSA PCM `hw_params` 均为 `closed`；
+- deep-buffer thread 为 `Standby: yes`，Spotify track 不再 active；
+- `QUAT_MI2S_RX Audio Mixer MultiMedia1 = Off`；
+- 内核日志记录 Quaternary MI2S shutdown、MBHC VDDIO off 和 clock disabled；
+- `persist.audio.hifi=true` 和耳机连接仍保留。
+
+最后一点再次证明 HiFi 属性与耳机插入只是路由条件，不代表 DAC/I²S 播放路径持续上电。
+H1 新增 PCM、H0-after 移除同一个 PCM，构成了一组方向相反且可复核的状态证据。
+
 ## AVC 审计
 
 保留的内核日志中，以下 source context 的 `avc: denied` 数量为 0：
@@ -70,6 +97,7 @@ rfs_access
 
 日志里确实存在 `shell` 域读取音频标签文件时的 denial；这些来自我们的只读检查命令，
 source context 是 `u:r:shell:s0`，不是播放服务失败，不能混入音频闭包判断。
+H0-after 采集仍为 0，没有观察到关断阶段新增的音频域拒绝。
 
 ## 判断与下一步
 
