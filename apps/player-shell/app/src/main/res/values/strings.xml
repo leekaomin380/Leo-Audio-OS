@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Leo Player Shell</string>
+    <string name="leo_mark">LEO</string>
+    <string name="product_line">ONE DEVICE · ONE PURPOSE · MUSIC</string>
+    <string name="mode_safe_preview">安全预览 · 此版本没有 HOME 能力</string>
+    <string name="mode_home_not_default">HOME 候选 · 尚未设为默认 HOME</string>
+    <string name="mode_home_default">专用模式 · 当前已是默认 HOME</string>
+    <string name="spotify_ready">Spotify 已就绪</string>
+    <string name="spotify_missing">未找到 Spotify</string>
+    <string name="spotify_launch_failed">无法启动 Spotify，已停止重试。</string>
+    <string name="open_spotify">打开 Spotify</string>
+    <string name="current_home">当前 HOME：%1$s</string>
+    <string name="unknown">未知</string>
+    <string name="maintenance_hint">开发阶段：5 秒内连续点按 LEO 7 次进入维护认证</string>
+    <string name="maintenance_title">维护预览</string>
+    <string name="maintenance_warning">已通过本地认证。本次维护会话 5 分钟后失效；退出维护预览会立即锁定。</string>
+    <string name="maintenance_session_countdown">已通过本地认证 · 会话剩余 %1$d:%2$02d\n到期后自动返回普通模式；主动退出会立即锁定。</string>
+    <string name="open_wifi">Wi-Fi 设置</string>
+    <string name="open_vpn">VPN 设置</string>
+    <string name="open_spotify_details">Spotify 应用信息</string>
+    <string name="open_stock_home">打开原厂 MIUI 桌面</string>
+    <string name="open_shell_details">Leo Shell 应用信息（清除默认/卸载）</string>
+    <string name="close_maintenance">退出维护预览</string>
+    <string name="maintenance_action_failed">系统没有提供这个设置入口。</string>
+    <string name="maintenance_auth_title">维护认证</string>
+    <string name="pin_setup_message">首次使用，请设置 6 位维护 PIN。这里只保存加盐派生值，不保存明文 PIN。</string>
+    <string name="pin_unlock_message">输入 6 位维护 PIN。连续失败 5 次将暂时锁定 30 秒。</string>
+    <string name="pin_entry_hint">6 位维护 PIN</string>
+    <string name="pin_confirmation_hint">再次输入维护 PIN</string>
+    <string name="pin_setup_action">设置 PIN 并进入维护</string>
+    <string name="pin_unlock_action">进入维护模式</string>
+    <string name="pin_saving">正在安全保存维护 PIN…</string>
+    <string name="pin_verifying">正在验证，请稍候…</string>
+    <string name="cancel_auth">取消</string>
+    <string name="pin_invalid_format">PIN 必须是 6 位数字。</string>
+    <string name="pin_mismatch">两次输入不一致。</string>
+    <string name="pin_storage_failed">无法保存 PIN，维护模式保持锁定。</string>
+    <string name="pin_wrong">PIN 不正确，还可尝试 %1$d 次。</string>
+    <string name="pin_locked">维护入口仍在锁定，请等待约 %1$d 秒。</string>
+    <string name="stock_home_confirm_title">打开 MIUI 桌面？</string>
+    <string name="stock_home_confirm_message">这会退出维护会话并显式打开原厂桌面，不会删除 Leo Shell。若要恢复默认 HOME，请随后进入 Leo Shell 应用信息清除默认项或卸载。</string>
+    <string name="stock_home_confirm_action">打开 MIUI 桌面</string>
+</resources>

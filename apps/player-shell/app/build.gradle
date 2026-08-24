@@ -1,0 +1,56 @@
+plugins {
+    id "com.android.application"
+}
+
+android {
+    namespace "io.github.leoaudio.shell"
+    compileSdk 36
+
+    defaultConfig {
+        applicationId "io.github.leoaudio.shell"
+        minSdk 24
+        targetSdk 36
+        versionCode 9
+        versionName "0.2.7-dev.1"
+    }
+
+    flavorDimensions += "mode"
+    productFlavors {
+        safePreview {
+            dimension "mode"
+            applicationIdSuffix ".preview"
+            versionNameSuffix "-preview"
+            manifestPlaceholders = [appLabel: "Leo Shell 安全预览"]
+            buildConfigField "boolean", "HOME_CAPABLE", "false"
+        }
+        homeCandidate {
+            dimension "mode"
+            versionNameSuffix "-home"
+            manifestPlaceholders = [appLabel: "Leo Shell HOME 候选"]
+            buildConfigField "boolean", "HOME_CAPABLE", "true"
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+        }
+        release {
+            minifyEnabled false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+}
+
+dependencies {
+    testImplementation "junit:junit:4.13.2"
+}
