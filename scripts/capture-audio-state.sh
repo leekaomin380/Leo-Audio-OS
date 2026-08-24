@@ -61,7 +61,7 @@ capture_shell dumpsys-audio-flinger.txt 'dumpsys media.audio_flinger'
 capture_shell dumpsys-audio-policy.txt 'dumpsys media.audio_policy'
 capture_shell audio-logcat.txt '
   logcat -d -v threadtime -b main -b system -b crash |
-    grep -Ei "AudioFlinger|AudioPolicy|audio_hw|audio.primary|audioserver|AudioTrack|ACDB|hifi|QUAT_MI2S|offload|tinycompress|q6asm|q6afe|headset|headphone|spotify"
+    grep -Ei "AudioFlinger|AudioPolicy|audio_hw|audio.primary|audioserver|AudioTrack|ACDB|hifi|QUAT_MI2S|offload|tinycompress|q6asm|q6afe|WiredAccessoryManager|MusicFX|Dirac"
 '
 capture_root processes.txt 'ps -A 2>/dev/null || ps'
 capture_root process-maps.txt '
@@ -84,7 +84,7 @@ capture_root proc-asound.txt '
 '
 capture_root tinymix.txt 'tinymix'
 capture_root kernel-audio-log.txt \
-  'dmesg | grep -Ei "avc: denied|audio|sound|alsa|asoc|adsp|es9018|ess9018|hifi|i2s|slim|wcd|headset|headphone|mbhc|tomtom"'
+  'dmesg | grep -Ei "audio|sound|alsa|asoc|adsp|es9018|ess9018|hifi|i2s|slim|wcd|headset|headphone|mbhc|tomtom|scontext=u:r:(audioserver|audiod|adsprpcd)"'
 capture_root clocks-and-interrupts.txt '
   echo "[clock summary]"
   cat /sys/kernel/debug/clk/clk_summary 2>/dev/null |

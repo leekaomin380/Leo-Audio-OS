@@ -13,7 +13,7 @@
 
 - [ ] 从官方 `system.img` 和参考机提取完整音频文件集合；
 - [ ] 分析 32/64 位 ELF 依赖、init 服务、属性、权限和 SELinux 域；
-- [ ] 记录 AudioFlinger、AudioPolicy、Mixer、QUAT MI2S 的实时路径；
+- [x] 记录 Spotify 的 AudioFlinger、AudioPolicy、Mixer、QUAT MI2S 实时路径；
 - [ ] 区分必须保留、条件保留和无关组件；
 - [ ] 生成可机器校验的音频兼容清单。
 

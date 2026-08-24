@@ -129,34 +129,74 @@ Spotify
   → ESS9018K2M → OPA1612 → headphones
 ```
 
-图中最后两项硬件关系来自设备设计和既有内核证据；Spotify 当前播放究竟使用 mixer
-还是 compressed offload，以及每次是否走 QUAT_MI2S，仍需运行时对照确认。
+运行时对照已经确认 Spotify 经 mixer/deep-buffer 进入 QUAT_MI2S。图中
+ESS9018K2M 到 OPA1612 的器件连接来自设备设计和内核证据；外部 DAC 的具体 GPIO、
+regulator 与 I2C 上下电时序仍需继续映射。
 
-## 下一组实验
+## U0/H0/H1 运行时对照
 
-按三个状态依次采集并比较：
+已按以下状态完成首轮对照：
 
 1. **U0**：未插耳机、没有播放；
 2. **H0**：插入耳机、没有播放；
-3. **H1**：插入耳机、Spotify 正常播放。
+3. **H1**：插入耳机、Spotify 正常播放；
+4. **H0-after**：暂停 Spotify，保持耳机插入并等待超过 5 秒。
 
-每次记录 AudioPolicy、AudioFlinger、ALSA、mixer、HiFi 属性和新产生的内核日志。
-比较结果将回答：
+| 观察项 | U0 | H0 | H1 | H0-after |
+|---|---|---|---|---|
+| Android 输出设备 | Speaker | Wired Headphones | Wired Headphones | Wired Headphones |
+| 耳机阻抗检测 | 无读数 | 有原始读数，类型 2 | 保持 | 保持 |
+| Spotify track | 无 | 无 | 44.1 kHz / PCM16 / stereo | 无 |
+| AudioFlinger 输出 | Standby | Standby | MIXER + DEEP_BUFFER，48 kHz / PCM16 | Standby |
+| HAL sound device | 无活动路由 | 无活动路由 | `hifi-headphones` | 无活动路由 |
+| ALSA PCM | 全部 closed | 全部 closed | card 0 / PCM 0，48 kHz / S16_LE | 全部 closed |
+| QUAT_MI2S mixer | Off | Off | MultiMedia1 On | Off |
+| QUAT_MI2S 后端配置 | S24_LE / 48 kHz | S24_LE / 48 kHz | S24_LE / 48 kHz | S24_LE / 48 kHz |
+| QUAT_MI2S 时钟 | 关闭 | 关闭 | 启动并保持 | 关闭 |
 
-- 耳机事件由谁检测；
-- HiFi 属性何时生效；
-- 哪个 `MultiMedia` usecase 被 Spotify 使用；
-- 是否启用 compressed offload；
-- 哪些 QUAT_MI2S 控件、位宽和采样率发生变化；
-- 停止播放后硬件是否正确关断，这直接关系到发热和待机功耗。
+### 已回答的问题
+
+- `WiredAccessoryManager` 接收内核耳机开关事件，Android AudioPolicy 增加有线耳机设备；
+- “HiFi 属性为 true”只是允许条件，耳机插入本身不会打开 PCM、DAC 路由或 I²S 时钟；
+- Spotify client PID 对应的 AudioTrack 为 44.1 kHz、16-bit、双声道；
+- Spotify 当前使用 MultiMedia1 的 deep-buffer mixer 路径，不是 compressed offload；
+- AudioFlinger/HAL 将流转换为 48 kHz、16-bit，再通过配置为 48 kHz、24-bit 的
+  QUAT_MI2S 后端发送；24-bit 总线容器不会增加 16-bit 音源的信息量；
+- HAL 明确选择 `hifi-headphones`，并打开 `QUAT_MI2S_RX Audio Mixer MultiMedia1`；
+- 播放暂停后约 3 秒进入 standby，PCM、mixer、MBHC 供电和 Quaternary MI2S 时钟均关闭。
+
+因此这次实验确认了真实 HiFi 路由，也确认播放后的关断没有卡住。此前观察到的播放发热
+不能简单归因于“暂停后 DAC 一直上电”。
+
+### 新发现的优化候选
+
+1. **重采样**：Spotify 44.1 kHz 被固定的 48 kHz HAL 输出重采样；
+2. **DiracSound**：AudioFlinger 中存在活动的插入式 Dirac effect；
+3. **无 compressed offload**：策略声明支持该输出，但本次 Spotify 流没有使用；
+4. **后台负担**：播放期间仍有 MIUI、Google 和 Spotify UI/网络活动，需要以后单独测量；
+5. **日志异常**：HiFi 启动时出现 device 34 缺少 ACDB ID，停止时出现 sound-device
+   引用计数已经为 0。实际播放和关断均正常，但要结合 HAL 源码判断它们是预期旁路还是
+   潜在缺陷。
+
+这些目前只是“值得做独立 A/B 测试的候选”，不是立即修改系统的理由。尤其不能为了
+追求 44.1 kHz 或 offload，在没有音质、稳定性、温度和回滚证据时改写 HAL。
+
+### 下一步仍要回答
+
+- DiracSound 是否改变频响、功耗或稳定性，能否安全关闭；
+- 44.1 → 48 kHz 重采样发生在何处，能否在不破坏 HiFi 路由的情况下避免；
+- Spotify/Android 7/该 HAL 的组合是否可能使用 compressed offload；
+- 外部 ESS 的 GPIO、regulator、I2C 初始化和关断由哪些内核节点完成；
+- 两条异常日志在内核/HAL 源码中的精确触发条件；
+- 长时间播放的 CPU 驻留、温度、电流和网络活动分别占多少成本。
 
 采集还包括 `audioserver`、`audiod`、`adsprpcd` 与 Spotify 的进程映射，用来证明
 运行时实际加载了哪些动态库；同时读取所有已注册 PCM 的 `hw_params`，避免把 mixer
 中的目标配置误认为已经落到硬件上的真实格式。
 
-AudioFlinger 当前的 standby delay 为 3 秒。因此从 H1 回到 H0 时至少等待 5 秒再
-采集，否则容易把正常的延迟关断误判为硬件常开。Spotify 的音量标准化、EQ 和测试
-曲目也应保持固定并记录，但在取得对照数据前，不预设它们一定会启用或阻止 offload。
+AudioFlinger 的 standby delay 为 3 秒，实测关断时序与之吻合。后续从 H1 回到 H0
+仍应等待至少 5 秒再采集，避免把正常延迟误判为硬件常开。Spotify 的音量标准化、EQ
+和测试曲目也应保持固定并记录；改变其中一项时，只改变这一个变量。
 
 ## 尚未完成
 
@@ -164,5 +204,4 @@ AudioFlinger 当前的 standby delay 为 3 秒。因此从 H1 回到 H0 时至�
 - `dlopen` 组件的运行时确认；
 - init、属性触发和 SELinux allow 规则的完整映射；
 - 内核驱动、设备树节点与用户空间 sound device 的一一对应；
-- Spotify 耳机播放的真实路由与 offload 行为；
 - 最小保留集和任何可删除结论。
