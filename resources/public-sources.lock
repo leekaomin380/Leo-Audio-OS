@@ -1,0 +1,13 @@
+# id|authority|track|remote|branch|commit|purpose
+first-gen-project|project|bridge|https://github.com/leekaomin380/mi-note-pro-hifi-streamer.git|main|844211310b44fd6fe4a107ef8685ce7b4fa15363|validated MIUI baseline and recovery practice
+xiaomi-official-kernel|xiaomi-official|both|https://github.com/MiCode/Xiaomi_Kernel_OpenSource.git|libra-n-oss|f4cab50d74f8e55e0a0dbbf430d163f46c6fc3a1|official leo kernel baseline including ESS9018 and leo defconfig
+classic-leo-kernel|community|source-os|https://github.com/xiaomi-classic-dev/android_kernel_xiaomi_leo.git|mkr-mr1|17a5b8886d0b715df16c7b71cfcf19b5f78c3ad7|community-evolved MSM8994 and ESS9018 kernel
+classic-leo-device|community|source-os|https://github.com/xiaomi-classic-dev/android_device_xiaomi_leo.git|mkq-mr1|b994edccae75e50ddfdbd3c74b71f9f1aae31b3e|leo device product audio and mixer configuration
+classic-msm8994-device|community|source-os|https://github.com/xiaomi-classic-dev/android_device_xiaomi_msm8994-common.git|mkq-mr1|ec5b87cad6a8f5326201ca4764410996b0a94133|MSM8994 common HAL policy Wi-Fi graphics and sepolicy
+classic-leo-vendor|community-proprietary-map|source-os|https://github.com/xiaomi-classic-dev/android_vendor_xiaomi_leo.git|mkr-mr1|98da7ae368bae13b2923e609085bfe42084c3ac3|leo proprietary inventory and build integration
+classic-msm8994-vendor|community-proprietary-map|source-os|https://github.com/xiaomi-classic-dev/android_vendor_xiaomi_msm8994-common.git|mkq-mr1|4fcd70ff1fe6e1f5b6e29159c94a0760c646785b|MSM8994 common proprietary inventory and build integration
+mokee-platform|community-platform|source-os|https://github.com/MoKee/android.git|mkq-mr1|7c238704cf8d667350a65ab4e757c27e90dfbfc9|Android 10 platform manifest
+teamwin-leo-recovery|teamwin|recovery|https://github.com/TeamWin/android_device_xiaomi_leo.git|lineage-15.0|eaa79737c5d3b6ce29108f757a23441522ede1ec|leo recovery partition fstab and USB-OTG reference
+lineage21-leo-device|experimental|research-only|https://github.com/rik0612c/android_device_xiaomi_leo.git|lineage-21|dc2079c074a307302c9fb12c10d76cf483d0ecd5|modern Android device bring-up reference not a flash candidate
+lineage21-msm8994-device|experimental|research-only|https://github.com/rik0612c/android_device_xiaomi_msm8994-common.git|lineage-21|c91bfc027bb26f3072e9b1e0833faf2fe5dd6860|modern common compatibility and shim reference
+lineage18-leo-kernel|experimental|research-only|https://github.com/rik0612c/android_kernel_xiaomi_leo.git|lineage-18.1|3e0c5aef787f8356e8b06a17b42943649ac3d58e|kernel compatibility reference for Android 12 era

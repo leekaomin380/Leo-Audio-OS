@@ -1,0 +1,17 @@
+# id|filename|sha256|availability|publish|purpose
+stock-fastboot-rom|leo_images_V9.2.3.0.NXHCNEK_20171229.0000.00_7.0_cn_4ca14075f0.tgz|007d3d7d9a7e3e70684498070bab03ec145a73b1de44ed7299698cc4bf5ad94f|local-vault|never|factory-format source and recovery input
+stock-boot|boot.img|bc64d15c26c53644e0d66e8dd3dc9e9c52bf2d4e4267d3c9f71ee90455e567d5|local-vault|never|exact reference boot
+stock-recovery|recovery.img|4aafc56e0feb5be5213a58e9bc770730d9cf3746a9b4ee31bc79d6484af461e0|local-vault|never|exact stock recovery
+spotify-base|base.apk|448ba8e6716dc8c55b0234f4dbc551adaa7992c1aabddf19aa790917cd37fce6|local-vault|never|Spotify 9.1.50.1906 user-supplied input
+spotify-arm64|split_config.arm64_v8a.apk|5193cbc0c57bc96005d3e0d3700f8104c6712dc8c4b3ccabd30206f83273f555|local-vault|never|Spotify arm64 split
+spotify-xhdpi|split_config.xhdpi.apk|46a13d7801ab060af441a9cedb9601a73bdd20933ef360acbbf47910bab5a087|local-vault|never|Spotify density split
+spotify-zh|split_config.zh.apk|33d1352ae6edc38632d0d492b51ccb88283fd779d5a174b0a9f67ea8b1e431af|local-vault|never|Spotify Chinese resources split
+audio-hal-32|system/lib/hw/audio.primary.msm8994.so|0b8e3f6290532499ac19c881fc8cbe36c8212f3dd83fe4aa3527ff6265fe038a|local-vault|never|stock 32-bit primary audio HAL
+audio-hal-64|system/lib64/hw/audio.primary.msm8994.so|4b3fb296226c77219dc44695512f7743d708315cec5c756a88ee6e9077385de1|local-vault|never|stock 64-bit primary audio HAL
+audio-policy|system/etc/audio_policy.conf|cfedbe8d84022e883baadfd517cbbaa1f6f51c18c45dd9feb6e66a28e4fd3b66|local-vault|never|stock audio policy
+audio-platform|system/etc/audio_platform_info.xml|6fdf7373ed35892c925451b5f85ff8593403bd5efc5a902eb10ebda4237e1917|local-vault|never|stock platform routing metadata
+audio-platform-i2s|system/etc/audio_platform_info_i2s.xml|10487b79a4aefe9d68e5bca171e6d1ada406a962efedd05b064065b107922e60|local-vault|never|stock I2S platform metadata
+mixer-paths|system/etc/mixer_paths.xml|13db0e6e5bd04e02c36a6b84e815f492d730e107866b91e605ee653364084bb4|local-vault|never|stock generic mixer routes
+mixer-paths-i2s|system/etc/mixer_paths_i2s.xml|ed2f1d41fbbd11bb788da8a1e8c9ce36c8940e8da913f51ee7e7feaff70b81dd|local-vault|never|stock ESS and I2S mixer routes
+gms-bundle|TBD|TBD|missing|never|optional user-supplied Google services input
+release-keys|generated-offline|TBD|missing|never|Leo Audio OS platform and OTA keys
