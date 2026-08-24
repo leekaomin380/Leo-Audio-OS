@@ -138,9 +138,23 @@ stock boot 命令行含：
 lpm_levels.sleep_disabled=1 boot_cpus=0-5
 ```
 
-`lpm_levels.sleep_disabled=1` 明确禁用 SoC 低功耗 sleep levels，是第二代待移除和 A/B
-验证的重要空闲功耗候选。它不解释所有播放发热，也不授权现在修改 boot。
-`boot_cpus=0-5` 限制初始启动 CPU 集；不应在没有运行时 CPU online 证据时把它解读为
+`lpm_levels.sleep_disabled=1` 要求内核在早期启动时先禁用低功耗层级，但不能由此
+推断完成启动后仍一直禁用。当前实机运行值为：
+
+```text
+/sys/module/lpm_levels/parameters/sleep_disabled = N
+CPU0 C1 retention usage = 157109
+CPU0 C3 pc usage = 396989
+A53/A57 CPU pc, L2 pc and system CCI pc idle_enabled = Y
+```
+
+因此参考机当前确实在使用 CPU power collapse，“深度休眠始终被禁用”已被实机
+反证。stock ramdisk 在 charger action 中明确会写 `sleep_disabled=0`，但本次还没有
+完整定位正常启动中将它恢复为 `N` 的执行者。所以该参数是需要重现时处理的
+早期启动时序，不是当前空闲功耗问题的已证实根因。
+
+`boot_cpus=0-5` 限制初始启动 CPU 集；实机的 `possible` / `present` 均为 `0-7`，
+当次采集时 `online=0-4,6`，证明内核运行期仍管理全部 8 核并动态热插拔，不是
 全程只能使用 6 核。
 
 ## 7. 证据边界与下一步
@@ -149,9 +163,14 @@ lpm_levels.sleep_disabled=1 boot_cpus=0-5
 
 - 公开提交就是 kernel 版本字符串中的 `f2509a2`；
 - 可用同一 defconfig、编译器、链接器和时间戳复现 stock kernel 哈希；
-- 运行内核的完整 `.config`；stock `/proc/config.gz` 为空，kernel 也没有 IKCONFIG；
+- 运行内核的完整 `.config`；实机不存在 `/proc/config.gz`，kernel 也没有 IKCONFIG；
 - 3.2 硬件上 OPA1612 的实际供电波形和 regulator 空闲漏电；
 - ramdisk 中编译 SELinux policy 的完整 allow 闭包。
+
+已对锁定的社区 `mkr-mr1` 分支完整提交图进行本地检索。该历史含 444,790 个
+祖先提交，且官方 `f4cab50d` 是锁定社区提交 `17a5b888` 的祖先；但历史中
+不存在 `f2509a2` 或 `fcc38b5` 对应的 commit object。因此这个社区树可用于官方
+基线之后的演进审计，不能填补 stock kernel 的精确私有源码提交。
 
 下一轮应先重建运行内核配置，解析编译 sepolicy 和属性触发，再做播放/待机
 regulator、CPU idle 与温度实测。在这些工作前，不对参考机写入新 boot。

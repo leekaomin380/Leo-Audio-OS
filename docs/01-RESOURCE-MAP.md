@@ -71,11 +71,13 @@ Recovery、Linux构建环境和第二台破坏性测试设备尚未齐备。
 QUAT_MI2S MultiMedia1；暂停后约 3 秒完整关闭 PCM、mixer、MBHC VDDIO 和 QUAT 时钟。
 详见 [`03-AUDIO-DEPENDENCY-CLOSURE.md`](03-AUDIO-DEPENDENCY-CLOSURE.md)。
 
-另一个已确认缺口是 `/proc/config.gz` 在参考系统上为空文件，stock kernel 也没有
+另一个已确认缺口是参考系统不存在 `/proc/config.gz`，stock kernel 也没有
 IKCONFIG。运行内核配置必须由 stock boot、公开 defconfig 和运行中 sysfs 三方重建。
 已确认 stock boot 实际选中的 MSM8994 v2.1 MTP DTB 与官方源码的音频节点
 语义一致，参考机硬件为 3.2。详见
 [`05-STOCK-BOOT-DTB-AUDIT.md`](05-STOCK-BOOT-DTB-AUDIT.md)。
+第一版配置证据子集见
+[`06-KERNEL-CONFIG-RECONSTRUCTION.md`](06-KERNEL-CONFIG-RECONSTRUCTION.md)。
 
 ## 5. 原厂镜像与私有恢复材料
 
@@ -138,6 +140,8 @@ Kernel changes for Xiaomi 4C / Xiaomi Note Pro / Xiaomi 4S
 与当前锁定的社区内核树比较，ESS9018、`msm_thermal` 和 `msm_performance` 的Git
 blob完全一致；`msm8994.c`和`leo_user_defconfig`不同。后两者将成为“官方基线 →
 社区演进 → 参考机实际内核”三方差异审计的中心。
+锁定社区分支的完整提交图包含官方 `f4cab50d`，但不包含 stock 版本串中的
+`f2509a2` 或 `fcc38b5`，所以它不能恢复精确量产提交。
 
 厂商公开内核并不等于当前 MIUI 内核的完整可复现源码。stock DTB 音频节点和
 关键驱动符号已对上；最终仍需确定精确源码提交、编译器、defconfig 和关键函数
@@ -167,7 +171,9 @@ Android 10 社区树仍含有：
 - 旧版HIDL、shim和专有Blob兼容逻辑。
 
 它可以帮助系统启动，但不符合 Leo Audio OS 正式版的安全和低功耗目标。Bring-up
-阶段可以暂时继承，正式版必须逐项删除，并最终达到SELinux Enforcing和正常深度休眠。
+阶段可以暂时继承，正式版必须逐项审计。stock 实机已证明运行期 `sleep_disabled=N`
+且 power-collapse 有使用计数，因此该命令行项是早期启动时序而不必然是持续禁用深度
+休眠。正式版目标仍是 SELinux Enforcing，并以运行时计数验证正常深度休眠。
 
 较新的民间 Lineage 21 移植只能作为C级参考：其 `leo` 配置把system分区设为约3 GiB，
 仍使用Permissive和旧内核兼容措施，而且没有形成与参考机相同可信度的完整Vendor

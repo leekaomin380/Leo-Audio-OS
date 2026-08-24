@@ -1,0 +1,28 @@
+symbol	official_defconfig	stock_status	confidence	evidence	second_gen_decision
+CONFIG_IKCONFIG	n	n	confirmed	stock Image has no IKCFG marker and live /proc/config.gz is absent	keep config as external build artifact; do not depend on runtime export
+CONFIG_MODULES	y	y	confirmed	live /proc/modules lists five loaded modules	retain during bring-up; reassess fixed production image
+CONFIG_PREEMPT	y	y	confirmed	live uname contains PREEMPT	retain until latency and power A/B says otherwise
+CONFIG_HOTPLUG_CPU	y	y	confirmed	possible/present 0-7 while online set changes	retain with thermal fail-safe
+CONFIG_CPU_IDLE	y	y	confirmed	msm_idle exposes C0-C3 and nonzero retention/power-collapse counters	mandatory
+CONFIG_SUSPEND	y	likely-y	high	/sys/power exposes state and wakeup_count; direct state read is SELinux-denied	mandatory; verify suspend/resume on source build
+CONFIG_PM_SLEEP	y	likely-y	high	live LPM nodes expose suspend_enabled and stock init manages sleep	mandatory
+CONFIG_KALLSYMS	y	y	confirmed	/proc/kallsyms exists	retain for bring-up; production exposure is policy-controlled
+CONFIG_DEBUG_FS	y	y	confirmed	debugfs is mounted with Xiaomi whitelist	bring-up only; minimize or disable for production
+CONFIG_DEVMEM	n	n	high	/dev/mem absent and official defconfig explicitly disables it	keep disabled
+CONFIG_SECURITY_SELINUX	y	y	confirmed	live getenforce is Enforcing	mandatory
+CONFIG_SND	y	y	confirmed	live ALSA card and /dev/snd nodes registered	mandatory
+CONFIG_SND_PCM	y	y	confirmed	live PCM devices and H1 playback path	mandatory
+CONFIG_SND_COMPRESS_OFFLOAD	y	y	confirmed	live comprC0D* nodes registered	retain for experiments even though current Spotify H1 used deep-buffer PCM
+CONFIG_SND_SOC	y	y	confirmed	live ASoC msm8994-tomtom card	mandatory
+CONFIG_SND_SOC_MSM8994	y	y	confirmed	stock Image symbols plus live msm8994-tomtom card	mandatory
+CONFIG_SND_SOC_ES9018	y	y	confirmed	stock Image contains ES9018 probe/bias/hw_params symbols and live HiFi path works	mandatory
+CONFIG_SND_SOC_WCD9330	y	y	confirmed	stock Image contains WCD9330 driver symbols and live Tomtom/MBHC path works	mandatory
+CONFIG_MSM_QDSP6V2_CODECS	y	likely-y	high	ADSP route and QDSP runtime stack are present; exact option lacks direct export	mandatory pending source-build confirmation
+CONFIG_MSM_ADSPRPC	y	y	confirmed	live /dev/adsprpc-smd and adsprpcd	mandatory
+CONFIG_MSM_ADSP_LOADER	y	y	confirmed	live /sys/kernel/boot_adsp/boot node and stock init writes it	mandatory
+CONFIG_MSM_AVTIMER	y	y	confirmed	stock Image contains avtimer probe/ioctl symbols	mandatory for Qualcomm audio timing
+CONFIG_REGULATOR	y	y	confirmed	stock DTB supplies and ES9018 regulator control are registered and exercised	mandatory
+CONFIG_I2C	y	y	confirmed	stock ES9018 I2C probe symbol and live codec at bus 6 address 0x48	mandatory
+CONFIG_PINCTRL	y	y	confirmed	stock DTB pin states and live QUAT MI2S state transition	mandatory
+CONFIG_MSM_PERFORMANCE	y	y	confirmed	live /sys/module/msm_performance policy nodes	retain for baseline then simplify by measurement
+CONFIG_THERMAL	y	y	confirmed	live system exposes 34 thermal zones	mandatory; never remove protection
