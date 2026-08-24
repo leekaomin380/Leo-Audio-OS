@@ -7,13 +7,14 @@
 - [x] 引用并锁定现有 `mi-note-pro-hifi-streamer` 基线版本；
 - [x] 登记官方 ROM、stock boot/recovery、Spotify splits 和音频文件哈希；
 - [x] 建立工程实施、同步讲解和并行研究的协作协议；
-- [ ] 将所有不可公开材料放入被 Git 忽略的私有目录。
+- [x] 将当前所有不可公开材料放入被 Git 忽略的私有目录。
 
 ## Phase 1 — 音频依赖闭包
 
 - [ ] 从官方 `system.img` 和参考机提取完整音频文件集合；
 - [ ] 分析 32/64 位 ELF 依赖、init 服务、属性、权限和 SELinux 域；
 - [x] 记录 Spotify 的 AudioFlinger、AudioPolicy、Mixer、QUAT MI2S 实时路径；
+- [x] 解包 stock boot，确定实机 DTB/硬件修订并对照官方源码；
 - [ ] 区分必须保留、条件保留和无关组件；
 - [x] 生成可机器校验的音频兼容清单 v0.1（尚不是最终最小保留集）。
 

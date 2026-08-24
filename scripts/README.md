@@ -30,6 +30,20 @@ python3 scripts/verify-audio-compat-manifest.py \
   --system-root resources/private/stock-system-tree
 ```
 
+## `unpack-android-boot.py`
+
+Read-only extractor for the legacy Android boot format used by stock `leo`. It validates
+all section bounds, separates the compressed kernel payload from a concatenated DTB chain,
+decompresses gzip kernel and ramdisk payloads, and records hashes and offsets in
+`metadata.json`.
+The input image and extracted output must remain under `resources/private/`:
+
+```sh
+python3 scripts/unpack-android-boot.py \
+  --boot resources/private/stock-rom/.../images/boot.img \
+  --output resources/private/stock-boot-analysis
+```
+
 本目录将保存只读采集、依赖分析、构建、校验、签名和恢复工具。任何执行分区写入的
 工具都必须默认拒绝运行，直到型号、构建、哈希、目标分区和恢复材料全部通过检查。
 

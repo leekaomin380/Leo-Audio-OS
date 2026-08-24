@@ -1,6 +1,10 @@
 # id|filename|sha256|availability|publish|purpose
 stock-fastboot-rom|leo_images_V9.2.3.0.NXHCNEK_20171229.0000.00_7.0_cn_4ca14075f0.tgz|007d3d7d9a7e3e70684498070bab03ec145a73b1de44ed7299698cc4bf5ad94f|local-vault|never|factory-format source and recovery input
 stock-boot|boot.img|bc64d15c26c53644e0d66e8dd3dc9e9c52bf2d4e4267d3c9f71ee90455e567d5|local-vault|never|exact reference boot
+stock-kernel-payload|boot.img:kernel-payload|0478496915b5a216d85f1b700f0a069421d7fc6b0f802da87068c6bc148ffa03|derived-private|never|gzip kernel payload before appended DTBs
+stock-kernel-image|boot.img:kernel-image|16eabe299644db7baaa440c3382dcca723b29024632f1676ec3cd591419d3000|derived-private|never|decompressed ARM64 kernel image
+stock-dtb-v2.1-mtp|boot.img:appended-dtb-index-25|cee146b6093e34d2997ca21314cd25d9a7d321429b695dff6a6bae70ad178d5e|derived-private|never|live-matched MSM8994 v2.1 MTP DTB
+stock-ramdisk|boot.img:ramdisk|5161939c101e4cdabfb87f27d5e3e48bb26d3a3985f64b5acb8c953a5d87b1d9|derived-private|never|gzip stock root ramdisk
 stock-recovery|recovery.img|4aafc56e0feb5be5213a58e9bc770730d9cf3746a9b4ee31bc79d6484af461e0|local-vault|never|exact stock recovery
 spotify-base|base.apk|448ba8e6716dc8c55b0234f4dbc551adaa7992c1aabddf19aa790917cd37fce6|local-vault|never|Spotify 9.1.50.1906 user-supplied input
 spotify-arm64|split_config.arm64_v8a.apk|5193cbc0c57bc96005d3e0d3700f8104c6712dc8c4b3ccabd30206f83273f555|local-vault|never|Spotify arm64 split

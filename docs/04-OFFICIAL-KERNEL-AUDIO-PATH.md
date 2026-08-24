@@ -17,7 +17,7 @@ MultiMedia1 / QDSP routing
      ├─ 49.152 MHz oscillator for the 48 kHz family
      ├─ 45.1584 MHz oscillator for the 44.1 kHz family
      ├─ impedance-dependent THD compensation
-     └─ DAC → OPA enable → analog switch → headphones
+     └─ DAC → OPA1612 analog stage → analog switch → headphones
 ```
 
 这解释了为什么扬声器播放不触发这条路径，也解释了为什么“插入耳机”和“开始播放”
@@ -38,7 +38,7 @@ MultiMedia1 / QDSP routing
 | Reset | `ess,resetb-gpio` | GPIO 8，低有效 |
 | Mute | `ess,mute-gpio` | GPIO 33 |
 | 模拟输出切换 | `ess,switch-gpio` | GPIO 34 |
-| OPA 使能 | `ess,opa-gpio` | GPIO 102，仅硬件版本 2.2 分支使用 |
+| OPA 控制 | `ess,opa-gpio` | GPIO 102；驱动仅在硬件 2.2 请求该 GPIO，参考机 3.2 上不使用 |
 | 45.1584 MHz 晶振 | `ess,clock-45m-gpio` | GPIO 107 |
 | 49.152 MHz 晶振 | `ess,clock-49m-gpio` | GPIO 25 |
 
@@ -119,18 +119,20 @@ Tomtom/MBHC 测量路径，即使“有声音”，也不能宣称与原厂 HiFi
 `es9018.c:671-752`：
 
 1. 先静音；
-2. 打开五路 regulator（硬件 2.2 例外）；
+2. 打开五路 regulator（参考机 3.2 走此正常分支）；
 3. 打开所选晶振；
 4. 等待 1 ms，释放 reset，再等待 1 ms；
 5. 根据阻抗写 THD 补偿，同步寄存器与滤波配置；
 6. 打开 soft start，等待 150 ms；
-7. 打开 OPA、模拟 switch，最后解除静音（硬件 2.2 例外）。
+7. 调用 OPA 控制、打开模拟 switch，最后解除静音。参考机为硬件
+   3.2，`opa_gpio` 保持无效值，因此 OPA 控制调用实际为 no-op；这不等于模拟链路
+   中没有 OPA1612。
 
 ### 最后一个用户关闭
 
 `es9018.c:763-788` 和 `msm8994.c:2171-2205`：
 
-1. 静音，关闭 OPA 和模拟 switch；
+1. 静音，调用 OPA 关闭并关闭模拟 switch；参考机上前一调用为 no-op；
 2. 关闭 soft start，assert reset，关闭晶振；
 3. 非硬件 2.2 关闭五路 regulator；
 4. QUAT 引用回到 0 后关闭 LPASS 时钟、恢复 sleep pinctrl、关闭 MBHC VDDIO。
@@ -153,13 +155,14 @@ MBHC 插入路径会测阻抗并调用 `es9018_set_headphone(true)`；该函数�
 
 这正是实机 H0/H1/H0-after 的行为。
 
-## 7. 必须保留为疑问的代码异常
+## 7. 必须保留的代码异常与兼容性边界
 
 以下现象不能未经实验就“修复”：
 
 1. **硬件版本 2.2 特例**：probe 时提前打开电源，此后 bias on/off 不再切 regulator，
-   且 startup 跳过最后一次 unmute。它可能对应 P2C 硬件布线差异，也可能是遗留代码；
-   在确认参考机硬件版本和 GPIO 实际波形前不能删除。
+   且 startup 跳过最后一次 unmute。实机 `/sys/bootinfo/hw_version=0x132`，按官方
+   源码的位掩码解码为 device 1 / major 3 / minor 2，所以该特例**不适用于参考机**。
+   它仍是支持旧硬件修订时必须保留的兼容分支，不能从通用源码中随意删除。
 2. **shutdown 结尾解除 mute**：DAC 已 reset/断时钟后，代码把外部 mute GPIO 恢复为
    unmute。表面反直觉，但可能用于避免 GPIO 默认态、电流或下一次启动问题；只能记录
    为审计项，不能直接定性为 bug。
@@ -183,6 +186,8 @@ MBHC 插入路径会测阻抗并调用 `es9018_set_headphone(true)`；该函数�
 - 保持 32 位 Audio HAL 所需 ABI、ACDB、mixer 和 DSP 侧依赖；
 - 用运行时 PCM、mixer、时钟和听音/测量验收，而不是以“系统启动”作为完成标准。
 
-本文解决了硬件控制层的第一轮映射。仍未解决的是 stock boot 与公开内核的逐 blob
-差异、参考机硬件版本、regulator 实际 idle 状态、非 48 kHz 运行，以及原厂 HAL 的
-init/SELinux/属性完整闭包。
+本文解决了硬件控制层的第一轮映射。stock boot 中的实际 DTB 与公开源码的
+语义对照、参考机硬件版本及启动 ramdisk 音频依赖见
+[`05-STOCK-BOOT-DTB-AUDIT.md`](05-STOCK-BOOT-DTB-AUDIT.md)。仍未解决的是精确内核源码提交的
+可重现编译、regulator 实际 idle 状态、非 48 kHz 运行，以及原厂 HAL 的
+SELinux allow 规则与属性触发完整闭包。

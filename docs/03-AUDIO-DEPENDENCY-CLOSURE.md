@@ -134,6 +134,11 @@ Spotify
 codec-master 时钟关系和上下电顺序。完整逐行说明见
 [`04-OFFICIAL-KERNEL-AUDIO-PATH.md`](04-OFFICIAL-KERNEL-AUDIO-PATH.md)。
 
+stock boot 后续审计已确认参考机使用 MSM8994 v2.1 MTP DTB，该 DTB 的音频
+节点与官方源码语义一致；参考机硬件版本为 3.2，不走 2.2 特殊供电分支。
+ramdisk 内的 ADSP 启动、`audiod`、`adsprpcd`、`rfs_access`、数据目录和设备权限也已
+进入静态闭包。详见 [`05-STOCK-BOOT-DTB-AUDIT.md`](05-STOCK-BOOT-DTB-AUDIT.md)。
+
 ## U0/H0/H1 运行时对照
 
 已按以下状态完成首轮对照：
@@ -198,8 +203,8 @@ codec-master 时钟关系和上下电顺序。完整逐行说明见
 - DiracSound 是否改变频响、功耗或稳定性，能否安全关闭；
 - 44.1 → 48 kHz 重采样发生在何处，能否在不破坏 HiFi 路由的情况下避免；
 - Spotify/Android 7/该 HAL 的组合是否可能使用 compressed offload；
-- 参考机属于哪一硬件修订，硬件 2.2 的特殊供电分支是否适用；
-- stock boot 与公开内核在 ESS/MSM8994 音频代码和 DTB 上是否完全一致；
+- stock kernel 的精确源码提交、构建配置和工具链能否达到可重现；
+- 编译 SELinux policy 中音频服务、设备节点和数据文件的完整 allow 闭包；
 - 两条异常日志在内核/HAL 源码中的精确触发条件；
 - 长时间播放的 CPU 驻留、温度、电流和网络活动分别占多少成本。
 
@@ -214,6 +219,6 @@ AudioFlinger 的 standby delay 为 3 秒，实测关断时序与之吻合。后�
 ## 尚未完成
 
 - `dlopen` 组件的运行时确认；
-- init、属性触发和 SELinux allow 规则的完整映射；
+- init 服务与设备权限骨架已建立；属性触发和 SELinux allow 规则仍未完整映射；
 - 内核驱动、设备树节点与用户空间 sound device 的一一对应；
 - 最小保留集和任何可删除结论。

@@ -71,8 +71,11 @@ Recovery、Linux构建环境和第二台破坏性测试设备尚未齐备。
 QUAT_MI2S MultiMedia1；暂停后约 3 秒完整关闭 PCM、mixer、MBHC VDDIO 和 QUAT 时钟。
 详见 [`03-AUDIO-DEPENDENCY-CLOSURE.md`](03-AUDIO-DEPENDENCY-CLOSURE.md)。
 
-另一个已确认缺口是 `/proc/config.gz` 在参考系统上为空文件。运行内核配置不能从该
-入口直接取得，必须由 stock boot、公开defconfig和运行中sysfs三方重建。
+另一个已确认缺口是 `/proc/config.gz` 在参考系统上为空文件，stock kernel 也没有
+IKCONFIG。运行内核配置必须由 stock boot、公开 defconfig 和运行中 sysfs 三方重建。
+已确认 stock boot 实际选中的 MSM8994 v2.1 MTP DTB 与官方源码的音频节点
+语义一致，参考机硬件为 3.2。详见
+[`05-STOCK-BOOT-DTB-AUDIT.md`](05-STOCK-BOOT-DTB-AUDIT.md)。
 
 ## 5. 原厂镜像与私有恢复材料
 
@@ -136,8 +139,9 @@ Kernel changes for Xiaomi 4C / Xiaomi Note Pro / Xiaomi 4S
 blob完全一致；`msm8994.c`和`leo_user_defconfig`不同。后两者将成为“官方基线 →
 社区演进 → 参考机实际内核”三方差异审计的中心。
 
-厂商公开内核并不等于当前MIUI内核的完整可复现源码。最终仍需比较stock boot内核、
-编译器、DTB、defconfig和关键驱动行为。
+厂商公开内核并不等于当前 MIUI 内核的完整可复现源码。stock DTB 音频节点和
+关键驱动符号已对上；最终仍需确定精确源码提交、编译器、defconfig 和关键函数
+的二进制对等性。
 
 ## 7. 社区源码：可构建框架与兼容层
 
@@ -211,7 +215,7 @@ Leo Audio OS 不复制该仓库。它把第一代项目当作：
 | 配置 | Policy、Platform、Mixer、Effects、init脚本 | 建立文件到运行路径的因果映射 |
 | 校准 | Forte ACDB文件，社区Vendor清单 | 对照原厂system与设备实际加载文件 |
 | DSP | 原厂ROM和当前固件分区 | 确认加载来源；默认不升级、不重刷 |
-| 内核 | Xiaomi官方+社区ESS/MSM8994源码 | 官方硬件路径已映射；继续与stock boot三方差异审计 |
+| 内核 | Xiaomi官方+社区ESS/MSM8994源码 | stock DTB 音频节点已对上官方源码；继续重建精确构建配置 |
 | 模拟端 | ESS9018K2M、OPA1612、耳机阻抗读数 | 音频分析仪下的频响、THD+N、噪声与串扰基线 |
 
 已经保存的核心文件哈希证明第一代改造没有替换音频HAL和配置。第二代应当先把这组
