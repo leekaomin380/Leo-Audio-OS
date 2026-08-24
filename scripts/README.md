@@ -66,6 +66,11 @@ scripts/analyze-selinux-audio-policy.sh
 scripts/collect-selinux-audio-runtime.sh
 ```
 
+The live collector also records any currently open ALSA PCM parameters and filters retained
+kernel AVC messages to the four audio-support source domains. An empty
+`audio-domain-avc.txt` means no matching denial was present in the retained kernel log; it
+does not prove that older, rotated-out messages never existed.
+
 本目录将保存只读采集、依赖分析、构建、校验、签名和恢复工具。任何执行分区写入的
 工具都必须默认拒绝运行，直到型号、构建、哈希、目标分区和恢复材料全部通过检查。
 

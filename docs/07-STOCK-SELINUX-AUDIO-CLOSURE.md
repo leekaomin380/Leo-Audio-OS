@@ -110,7 +110,8 @@ init 或 shell 域运行”的可能。
 - `/system/etc/aanc_tuning_mixer.txt`。
 
 真机还确认 `/dev/snd/pcmC0D0p`、`/dev/msm_hweffects` 与上述节点同属
-`audio_device`。PCM 的活动使用已由前一轮 H1 Spotify 播放状态证实。
+`audio_device`。后续 H1 对照进一步确认：播放时 `audioserver` 新增并保持打开
+`/dev/snd/pcmC0D0p`，而空闲快照中没有该句柄。
 
 ### 5.3 DSP 与远端文件支撑
 
@@ -167,11 +168,13 @@ daemon 缺失”误推为“所有 DTS 数据和效果都无关”。删除仍�
 
 ## 9. 仍未闭合的项目
 
-- 播放 H1 状态下四个域的瞬态文件句柄和 AVC 对照；
 - `audiod`、`adsprpcd`、`rfs_access` 分别对冷启动、DSP 恢复和持续播放的必要性；
 - 原厂 `.te` 源文件、宏和 build-time `neverallow` 的精确来源；
 - `miui_audio_device`、Dolby/Dirac、DTS 数据路径的功能归属和可删除边界；
 - 在第二代源码系统中，以专用类型替代通用 `system_file` 的闭源兼容性。
 
-下一项低风险验证应是在耳机播放 H1 时再次运行只读文件句柄采集，与本次空闲快照做差。
-它不会改变设备状态，但需要用户主动插入耳机并保持 Spotify 播放。
+H1 文件句柄和 AVC 对照已经完成：唯一新增目标是
+`audioserver → /dev/snd/pcmC0D0p`，四个音频域均未出现 denial。完整复核见
+[`reviews/2026-08-24-selinux-h1-runtime.md`](reviews/2026-08-24-selinux-h1-runtime.md)。
+下一阶段应转向冷启动、长播放、暂停恢复和 DSP 恢复证据；缩减厂商域权限必须留给
+具有完整回滚能力的测试构建。

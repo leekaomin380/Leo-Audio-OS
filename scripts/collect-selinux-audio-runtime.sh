@@ -94,6 +94,22 @@ capture_root runtime-file-descriptors.txt '
   done
 '
 
+capture_root audio-active-pcm.txt '
+  for file in /proc/asound/card*/pcm*/sub*/hw_params; do
+    state="$(cat "$file" 2>/dev/null)"
+    if [ -n "$state" ] && [ "$state" != "closed" ]; then
+      echo "[$file]"
+      printf "%s\n" "$state"
+    fi
+  done
+'
+
+capture_root audio-domain-avc.txt '
+  dmesg 2>/dev/null |
+    grep "avc: denied" |
+    grep -E "scontext=u:r:(audioserver|audiod|adsprpcd|rfs_access):" || true
+'
+
 capture_root init-service-state.txt '
   for service in audioserver audiod adsprpcd rfs_access dts_configurator dtseagleservice; do
     printf "%s=" "$service"

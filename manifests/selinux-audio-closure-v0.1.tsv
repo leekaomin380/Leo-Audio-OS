@@ -6,7 +6,7 @@ rfs-access-start	/system/bin/rfs_access	init	rfs_access_exec	process	type_transi
 audio-service	audio	system_server;untrusted_app	audio_service	service_manager	add-find-via-system_server_service-and-client-find-via-app_api_service	stock-policy+service_contexts	confirmed-static	retain-compatible-service-contract
 audio-framework-services	media.audio_flinger;media.audio_policy;media.sound_trigger_hw	audioserver	audioserver_service	service_manager	add-find-and-app-client-find	stock-policy+service_contexts	confirmed-static	retain-compatible-binder-contract
 alsa-control	/dev/snd/controlC0	audioserver	audio_device	chr_file	read-write-ioctl-open	stock-policy+live-label+open-fd	confirmed-runtime	retain-and-narrow-to-required-nodes-if-compatible
-alsa-pcm	/dev/snd/pcmC0D0p	audioserver	audio_device	chr_file	read-write-ioctl-open	stock-policy+live-label+H1-runtime-state	confirmed-runtime	retain
+alsa-pcm	/dev/snd/pcmC0D0p	audioserver	audio_device	chr_file	read-write-ioctl-open	stock-policy+live-label+H1-open-fd+active-hw_params	confirmed-runtime	retain
 alsa-hwdep	/dev/snd/hwC0D1000	audioserver	audio_device	chr_file	write-open	stock-policy+live-label+open-fd	confirmed-runtime	retain
 audio-calibration-device	/dev/msm_audio_cal	audioserver	audio_device	chr_file	read-write-ioctl-open	stock-policy+live-label+open-fd	confirmed-runtime	retain
 audio-rtac-device	/dev/msm_rtac	audioserver	audio_device	chr_file	read-write-ioctl-open	stock-policy+live-label+open-fd	confirmed-runtime	retain-until-playback-and-calibration-tests-pass
