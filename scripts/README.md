@@ -1,5 +1,35 @@
 # Scripts
 
+## `analyze-audio-elf-deps.py`
+
+Recursively maps `DT_NEEDED` dependencies for the stock audio HAL and its supporting
+services. It also records library names embedded in the explicit seed binaries as strings
+(possible `dlopen` or plugin edges), and libraries observed in captured process maps. A
+string reference is deliberately labelled as a candidate rather than a confirmed runtime
+dependency; each runtime edge retains the process name that supplied the observation.
+
+The expanded stock system tree and the detailed TSV output belong under
+`resources/private/`, which is excluded from Git. Example:
+
+```sh
+python3 scripts/analyze-audio-elf-deps.py \
+  --system-root resources/private/stock-system-tree \
+  --runtime-maps resources/private/runtime-states/20260824-152246-U0-v2/process-maps.txt \
+  --runtime-maps resources/private/runtime-states/20260824-153316-H1/process-maps.txt \
+  --output resources/private/analysis/audio-elf-dependencies.tsv
+```
+
+## `verify-audio-compat-manifest.py`
+
+Checks every exact file hash in the public compatibility manifest against a user-extracted
+stock system tree. It does not copy or publish the proprietary inputs:
+
+```sh
+python3 scripts/verify-audio-compat-manifest.py \
+  --manifest manifests/audio-compatibility-v0.1.tsv \
+  --system-root resources/private/stock-system-tree
+```
+
 本目录将保存只读采集、依赖分析、构建、校验、签名和恢复工具。任何执行分区写入的
 工具都必须默认拒绝运行，直到型号、构建、哈希、目标分区和恢复材料全部通过检查。
 

@@ -129,9 +129,10 @@ Spotify
   → ESS9018K2M → OPA1612 → headphones
 ```
 
-运行时对照已经确认 Spotify 经 mixer/deep-buffer 进入 QUAT_MI2S。图中
-ESS9018K2M 到 OPA1612 的器件连接来自设备设计和内核证据；外部 DAC 的具体 GPIO、
-regulator 与 I2C 上下电时序仍需继续映射。
+运行时对照已经确认 Spotify 经 mixer/deep-buffer 进入 QUAT_MI2S。官方内核源码进一步
+确认了 ES9018 的 I2C 地址、五路 regulator、双晶振、reset/mute/switch/OPA GPIO、
+codec-master 时钟关系和上下电顺序。完整逐行说明见
+[`04-OFFICIAL-KERNEL-AUDIO-PATH.md`](04-OFFICIAL-KERNEL-AUDIO-PATH.md)。
 
 ## U0/H0/H1 运行时对照
 
@@ -181,12 +182,24 @@ regulator 与 I2C 上下电时序仍需继续映射。
 这些目前只是“值得做独立 A/B 测试的候选”，不是立即修改系统的理由。尤其不能为了
 追求 44.1 kHz 或 offload，在没有音质、稳定性、温度和回滚证据时改写 HAL。
 
+## ELF 递归闭包 v0.1
+
+`scripts/analyze-audio-elf-deps.py` 已从 7 个明确入口和四组运行时进程映射出发，递归
+分析 293 个 ELF，得到 2328 条全部成功解析的 `DT_NEEDED` 边。另有 6 个可定位、9 个
+未定位的字符串候选；字符串只说明二进制包含一个可能的 `dlopen`/插件名，不代表调用
+发生，也不算链接缺失。
+
+第一版机器可校验输入清单位于
+[`manifests/audio-compatibility-v0.1.tsv`](../manifests/audio-compatibility-v0.1.tsv)，17 个
+文件已在原厂提取树中逐项通过 SHA-256。它是兼容性证据清单，不是最终可删除边界。
+
 ### 下一步仍要回答
 
 - DiracSound 是否改变频响、功耗或稳定性，能否安全关闭；
 - 44.1 → 48 kHz 重采样发生在何处，能否在不破坏 HiFi 路由的情况下避免；
 - Spotify/Android 7/该 HAL 的组合是否可能使用 compressed offload；
-- 外部 ESS 的 GPIO、regulator、I2C 初始化和关断由哪些内核节点完成；
+- 参考机属于哪一硬件修订，硬件 2.2 的特殊供电分支是否适用；
+- stock boot 与公开内核在 ESS/MSM8994 音频代码和 DTB 上是否完全一致；
 - 两条异常日志在内核/HAL 源码中的精确触发条件；
 - 长时间播放的 CPU 驻留、温度、电流和网络活动分别占多少成本。
 
@@ -200,7 +213,6 @@ AudioFlinger 的 standby delay 为 3 秒，实测关断时序与之吻合。后�
 
 ## 尚未完成
 
-- HAL 的第二圈和后续 ELF 依赖递归；
 - `dlopen` 组件的运行时确认；
 - init、属性触发和 SELinux allow 规则的完整映射；
 - 内核驱动、设备树节点与用户空间 sound device 的一一对应；

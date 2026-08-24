@@ -66,10 +66,10 @@ Recovery、Linux构建环境和第二台破坏性测试设备尚未齐备。
 | Spotify | `9.1.50.1906`，播放/切歌/下载已验收 | 应用兼容黄金版本 |
 
 已经保存的只读证据包括 `getprop`、`uname`、AudioFlinger、AudioPolicy、Tinymix、
-包状态、热区、音频配置和框架文件。当前 AudioFlinger 快照证明系统具有
-`DEEP_BUFFER` 输出，Tinymix 快照证明 QUAT MI2S 默认为 `S24_LE / 48 kHz`；但采集
-时输出已处于 standby，尚不能证明 Spotify 播放中的最终活动路由。这是 Phase 1 的
-首要补采项。
+包状态、热区、音频配置和框架文件。U0/H0/H1/H0-after 对照已经确认 Spotify 由
+44.1 kHz PCM16 经 deep-buffer 转为 48 kHz，HAL 选择 `hifi-headphones` 并打开
+QUAT_MI2S MultiMedia1；暂停后约 3 秒完整关闭 PCM、mixer、MBHC VDDIO 和 QUAT 时钟。
+详见 [`03-AUDIO-DEPENDENCY-CLOSURE.md`](03-AUDIO-DEPENDENCY-CLOSURE.md)。
 
 另一个已确认缺口是 `/proc/config.gz` 在参考系统上为空文件。运行内核配置不能从该
 入口直接取得，必须由 stock boot、公开defconfig和运行中sysfs三方重建。
@@ -207,11 +207,11 @@ Leo Audio OS 不复制该仓库。它把第一代项目当作：
 | --- | --- | --- |
 | 应用 | 已验证Spotify splits及签名版本 | 记录账号登录对GMS/WebView的真实依赖 |
 | Android音频 | AudioFlinger/Policy快照 | 播放中的输出线程、flags、采样率和欠载 |
-| Audio HAL | 原厂32/64位`audio.primary.msm8994.so` | 解析全部`DT_NEEDED`依赖和符号版本 |
+| Audio HAL | 原厂32/64位`audio.primary.msm8994.so` | 293个ELF递归依赖已解析；继续确认`dlopen`候选和符号版本 |
 | 配置 | Policy、Platform、Mixer、Effects、init脚本 | 建立文件到运行路径的因果映射 |
 | 校准 | Forte ACDB文件，社区Vendor清单 | 对照原厂system与设备实际加载文件 |
 | DSP | 原厂ROM和当前固件分区 | 确认加载来源；默认不升级、不重刷 |
-| 内核 | Xiaomi官方+社区ESS/MSM8994源码 | 与stock boot三方差异审计 |
+| 内核 | Xiaomi官方+社区ESS/MSM8994源码 | 官方硬件路径已映射；继续与stock boot三方差异审计 |
 | 模拟端 | ESS9018K2M、OPA1612、耳机阻抗读数 | 音频分析仪下的频响、THD+N、噪声与串扰基线 |
 
 已经保存的核心文件哈希证明第一代改造没有替换音频HAL和配置。第二代应当先把这组

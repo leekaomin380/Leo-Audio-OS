@@ -1,0 +1,18 @@
+component_id	layer	path	arch	sha256	classification	evidence
+audio-hal-32	HAL	lib/hw/audio.primary.msm8994.so	elf32	0b8e3f6290532499ac19c881fc8cbe36c8212f3dd83fe4aa3527ff6265fe038a	confirmed-runtime	mapped by audioserver in U0 and H1; selected hifi-headphones in H1
+audio-hal-64	HAL	lib64/hw/audio.primary.msm8994.so	elf64	4b3fb296226c77219dc44695512f7743d708315cec5c756a88ee6e9077385de1	stock-counterpart	present and statically analyzed; not mapped by 32-bit audioserver
+audio-policy	configuration	etc/audio_policy.conf	data	cfedbe8d84022e883baadfd517cbbaa1f6f51c18c45dd9feb6e66a28e4fd3b66	baseline-critical	declares primary outputs and offload capabilities
+audio-platform-i2s	configuration	etc/audio_platform_info_i2s.xml	data	10487b79a4aefe9d68e5bca171e6d1ada406a962efedd05b064065b107922e60	confirmed-runtime	selected by HAL HiFi path
+mixer-paths-i2s	configuration	etc/mixer_paths_i2s.xml	data	ed2f1d41fbbd11bb788da8a1e8c9ce36c8940e8da913f51ee7e7feaff70b81dd	confirmed-runtime	QUAT_MI2S_RX Audio Mixer MultiMedia1 changed in H1
+audio-platform-default	configuration	etc/audio_platform_info.xml	data	6fdf7373ed35892c925451b5f85ff8593403bd5efc5a902eb10ebda4237e1917	baseline-critical	non-HiFi fallback configuration
+mixer-paths-default	configuration	etc/mixer_paths.xml	data	13db0e6e5bd04e02c36a6b84e815f492d730e107866b91e605ee653364084bb4	baseline-critical	non-HiFi fallback mixer routes
+audio-effects	configuration	etc/audio_effects.conf	data	01b908dcdc21a5a484d4ee026e4c045acc3865336f4f02b918c141d3879d76b7	conditional	registers effects including active Dirac path
+audioserver	service	bin/audioserver	elf32	a48909cd10439d64a795f3e0d20f8d669a2bbd92f8f345061ebb58874de53d01	confirmed-runtime	host process for AudioFlinger policy and primary HAL
+audiod	service	bin/audiod	elf64	154a046704b30cb1e2234c4b04fde2139a2ca73e3fd1801ae9e560ffafe9e383	candidate-service	running in every state; causal necessity not yet isolated
+adsprpcd	service	bin/adsprpcd	elf64	add0ea5838b26bd9d51910fd96d3ebf40ff5072d3ac4f7afc664208eb4cb1520	candidate-service	running with libadsprpc; causal necessity not yet isolated
+rfs-access	service	bin/rfs_access	elf64	2675aa35454746bcb262b9736e9249766df518fcdd35f2645d4505097647d1d1	candidate-service	running remote-filesystem helper; causal necessity not yet isolated
+tinyalsa-32	library	lib/libtinyalsa.so	elf32	019003cfda18a1a8bee48ababf7074205a5aea67c775c421721891b1397edbd1	confirmed-runtime	direct HAL dependency and audioserver mapping
+tinycompress-32	library	lib/libtinycompress.so	elf32	a066f926cf8078f1603173abe814b2c1c7c50f1ea41be981e4b1b4b02305617a	confirmed-runtime	direct HAL dependency and audioserver mapping
+audioroute-32	library	lib/libaudioroute.so	elf32	b49efd10c656acad7b18c17203ea83aa8118f303905f497508603099f51a0728	confirmed-runtime	direct HAL dependency and audioserver mapping
+acdbloader-32	calibration-loader	vendor/lib/libacdbloader.so	elf32	64448e752c99bd22d21820873f899e0acd8fc2bce91189789956ccca42dcd5d9	confirmed-runtime	HAL string-loaded candidate observed in audioserver maps
+dirac-32	effect	lib/soundfx/libdirac.so	elf32	c2f1f8a95537584ca800b00e37352572ff9d0930c5d8c255200f5226770b8882	conditional-active	mapped and active in H1; removal requires controlled A/B

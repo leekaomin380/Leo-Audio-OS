@@ -15,7 +15,7 @@
 - [ ] 分析 32/64 位 ELF 依赖、init 服务、属性、权限和 SELinux 域；
 - [x] 记录 Spotify 的 AudioFlinger、AudioPolicy、Mixer、QUAT MI2S 实时路径；
 - [ ] 区分必须保留、条件保留和无关组件；
-- [ ] 生成可机器校验的音频兼容清单。
+- [x] 生成可机器校验的音频兼容清单 v0.1（尚不是最终最小保留集）。
 
 ## Phase 2 — 播放器 Shell 原型
 
