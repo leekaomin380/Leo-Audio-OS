@@ -1,0 +1,30 @@
+# Private and third-party inputs
+resources/private/
+input/
+private/
+*.apk
+*.apks
+*.img
+*.bin
+*.mbn
+*.tgz
+*.tar
+*.zip
+
+# Build outputs and signing material
+out/
+dist/
+build-private/
+keys/
+*.pk8
+*.pem
+*.jks
+*.keystore
+
+# Local files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+__pycache__/
+*.pyc
