@@ -2,8 +2,9 @@
 
 ## 状态
 
-本文记录 Phase 1 的可验证进展。当前只完成了官方镜像静态基线和实机空闲状态采集，
-尚不能宣称完整依赖闭包已经建立，也不能据此删除任何系统组件。
+本文记录 Phase 1 的可验证进展。官方镜像静态基线、受控播放对照、stock boot/DTB、
+首批内核配置证据和 SELinux 音频闭包 v0.1 已经建立。它们仍不是最终最小保留集，
+不能据此直接删除任何系统组件。
 
 基线设备：Xiaomi Mi Note Pro（`leo`），Android 7.0，MIUI
 `V9.2.3.0.NXHCNEK`，安全补丁 `2017-12-01`。设备已解锁并通过 Magisk 提供 Root，
@@ -139,6 +140,11 @@ stock boot 后续审计已确认参考机使用 MSM8994 v2.1 MTP DTB，该 DTB �
 ramdisk 内的 ADSP 启动、`audiod`、`adsprpcd`、`rfs_access`、数据目录和设备权限也已
 进入静态闭包。详见 [`05-STOCK-BOOT-DTB-AUDIT.md`](05-STOCK-BOOT-DTB-AUDIT.md)。
 
+stock 编译 SELinux policy 的首轮闭包也已完成：四个服务的 `init → *_exec → domain`
+转换、Binder 服务、属性类型、设备/数据类型和真机打开文件句柄已经交叉验证。详见
+[`07-STOCK-SELINUX-AUDIO-CLOSURE.md`](07-STOCK-SELINUX-AUDIO-CLOSURE.md) 和机器清单
+[`selinux-audio-closure-v0.1.tsv`](../manifests/selinux-audio-closure-v0.1.tsv)。
+
 ## U0/H0/H1 运行时对照
 
 已按以下状态完成首轮对照：
@@ -204,7 +210,7 @@ ramdisk 内的 ADSP 启动、`audiod`、`adsprpcd`、`rfs_access`、数据目录
 - 44.1 → 48 kHz 重采样发生在何处，能否在不破坏 HiFi 路由的情况下避免；
 - Spotify/Android 7/该 HAL 的组合是否可能使用 compressed offload；
 - stock kernel 的精确源码提交、构建配置和工具链能否达到可重现；
-- 编译 SELinux policy 中音频服务、设备节点和数据文件的完整 allow 闭包；
+- 播放 H1 状态下 SELinux 域、瞬态文件句柄和 AVC 的对照；
 - 两条异常日志在内核/HAL 源码中的精确触发条件；
 - 长时间播放的 CPU 驻留、温度、电流和网络活动分别占多少成本。
 
@@ -219,6 +225,6 @@ AudioFlinger 的 standby delay 为 3 秒，实测关断时序与之吻合。后�
 ## 尚未完成
 
 - `dlopen` 组件的运行时确认；
-- init 服务与设备权限骨架已建立；属性触发和 SELinux allow 规则仍未完整映射；
+- SELinux 有效授权闭包 v0.1 已建立；最小权限集及厂商遗留规则尚未由回归测试证明；
 - 内核驱动、设备树节点与用户空间 sound device 的一一对应；
 - 最小保留集和任何可删除结论。

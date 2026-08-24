@@ -11,3 +11,4 @@ teamwin-leo-recovery|teamwin|recovery|https://github.com/TeamWin/android_device_
 lineage21-leo-device|experimental|research-only|https://github.com/rik0612c/android_device_xiaomi_leo.git|lineage-21|dc2079c074a307302c9fb12c10d76cf483d0ecd5|modern Android device bring-up reference not a flash candidate
 lineage21-msm8994-device|experimental|research-only|https://github.com/rik0612c/android_device_xiaomi_msm8994-common.git|lineage-21|c91bfc027bb26f3072e9b1e0833faf2fe5dd6860|modern common compatibility and shim reference
 lineage18-leo-kernel|experimental|research-only|https://github.com/rik0612c/android_kernel_xiaomi_leo.git|lineage-18.1|3e0c5aef787f8356e8b06a17b42943649ac3d58e|kernel compatibility reference for Android 12 era
+aosp-selinux-7.1.2|aosp-official|analysis|https://android.googlesource.com/platform/external/selinux.git|android-7.1.2_r11|89ade431ecff217e0ce7752fda81b5e4e404a293|reference source for Android 7 SELinux analysis behavior

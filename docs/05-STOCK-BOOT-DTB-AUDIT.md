@@ -127,8 +127,9 @@ stock ramdisk 提供了不能只靠复制 HAL 补齐的启动条件：
 - Binder service contexts 为 `audio`、`media.audio_flinger`、`media.audio_policy`、
   `media.sound_trigger_hw` 等服务标注音频域。
 
-这一层已建立“服务名—可执行文件—用户组—设备节点—数据目录”的静态骨架，
-但编译后 SELinux policy 中每条 allow 的完整因果映射仍待解析。
+这一层已建立“服务名—可执行文件—用户组—设备节点—数据目录”的静态骨架。
+后续已经完成编译 SELinux policy 的首轮有效授权映射，见
+[`07-STOCK-SELINUX-AUDIO-CLOSURE.md`](07-STOCK-SELINUX-AUDIO-CLOSURE.md)。
 
 ## 6. 低功耗直接线索
 
@@ -165,7 +166,8 @@ A53/A57 CPU pc, L2 pc and system CCI pc idle_enabled = Y
 - 可用同一 defconfig、编译器、链接器和时间戳复现 stock kernel 哈希；
 - 运行内核的完整 `.config`；实机不存在 `/proc/config.gz`，kernel 也没有 IKCONFIG；
 - 3.2 硬件上 OPA1612 的实际供电波形和 regulator 空闲漏电；
-- ramdisk 中编译 SELinux policy 的完整 allow 闭包。
+- 原厂 SELinux 源 `.te`、宏与 build-time `neverallow` 的精确来源；二进制有效授权闭包
+  v0.1 已完成，但仍不是经功能测试证明的最小权限集。
 
 已对锁定的社区 `mkr-mr1` 分支完整提交图进行本地检索。该历史含 444,790 个
 祖先提交，且官方 `f4cab50d` 是锁定社区提交 `17a5b888` 的祖先；但历史中

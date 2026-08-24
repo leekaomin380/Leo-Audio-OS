@@ -54,6 +54,18 @@ authorized, rooted `leo` and writes only to the ignored private evidence directo
 scripts/collect-kernel-config-evidence.sh
 ```
 
+## SELinux audio audit
+
+Build the local Linux analysis image once, then decode the private stock policy and collect
+the corresponding live labels. The container receives the policy through a read-only bind
+mount; neither script changes device policy or SELinux mode:
+
+```sh
+docker build -t leo-audio-os-selinux-audit:bookworm tools/selinux-audit
+scripts/analyze-selinux-audio-policy.sh
+scripts/collect-selinux-audio-runtime.sh
+```
+
 本目录将保存只读采集、依赖分析、构建、校验、签名和恢复工具。任何执行分区写入的
 工具都必须默认拒绝运行，直到型号、构建、哈希、目标分区和恢复材料全部通过检查。
 

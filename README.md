@@ -13,12 +13,13 @@ Leo Audio OS 是一个面向 Xiaomi Mi Note Pro（代号 `leo`）的长期开放
 
 ## 当前状态
 
-项目处于 **Phase 0：立项与证据封存**。
+项目处于 **Phase 1：音频依赖闭包**。
 
 - 还没有可供刷入的 Leo Audio OS 固件；
 - 当前实机仍运行已验证的 MIUI 9 HiFi 播放器方案；
 - 不应根据本仓库当前内容执行分区写入；
-- 第一项工程任务是建立原厂音频组件的完整依赖闭包。
+- 原厂音频运行路径、HAL/ELF、stock boot/DTB、首批内核配置和 SELinux 有效授权
+  闭包已经建立；最终最小保留集仍待功能与故障测试证明。
 
 已经完成的 MIUI、Root、精简、框架补丁与回滚实践继续在
 [`mi-note-pro-hifi-streamer`](https://github.com/leekaomin380/mi-note-pro-hifi-streamer)
@@ -40,6 +41,10 @@ Leo Audio OS 是一个面向 Xiaomi Mi Note Pro（代号 `leo`）的长期开放
 - [01：可利用资源地图](docs/01-RESOURCE-MAP.md)
 - [02：工程学习与协作方式](docs/02-ENGINEERING-LEARNING-MODE.md)
 - [03：原厂音频依赖闭包](docs/03-AUDIO-DEPENDENCY-CLOSURE.md)
+- [04：官方内核音频路径](docs/04-OFFICIAL-KERNEL-AUDIO-PATH.md)
+- [05：Stock Boot 与 DTB 审计](docs/05-STOCK-BOOT-DTB-AUDIT.md)
+- [06：原厂内核配置重建](docs/06-KERNEL-CONFIG-RECONSTRUCTION.md)
+- [07：原厂 SELinux 音频闭包](docs/07-STOCK-SELINUX-AUDIO-CLOSURE.md)
 - [产品愿景与命名](docs/VISION.md)
 - [初始系统架构](docs/ARCHITECTURE.md)
 - [长期路线图](docs/ROADMAP.md)
