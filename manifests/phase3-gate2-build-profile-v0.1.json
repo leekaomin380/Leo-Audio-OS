@@ -100,9 +100,13 @@
       "default_mount_options": [],
       "default_directory_hash": "tea",
       "hash_seed_uuid": "da594c53-9beb-f85c-85c5-cedf76546f7a",
+      "resize_max_blocks": 432046080,
       "mke2fs_initial_time_seconds": 1,
       "postbuild_normalization": {
         "lost_found_atime_ctime_mtime_seconds": 0,
+        "lost_found_size_bytes": 4096,
+        "superblock_wtime_lastcheck_mkfs_time_seconds": 0,
+        "directory_hash_seed": "all_zeroes_without_dir_index",
         "min_extra_isize": 28,
         "want_extra_isize": 28
       },

@@ -117,6 +117,8 @@ python3 scripts/verify-audio-classification.py
   权限妨碍内核挂载读取；不复制 xattr/ACL，后续由 Gate 1 清单重建；
 - `verify-gate2-staging.py`：逐一验证 staging 文件内容 SHA-256、符号链接目标、类型和路径；
 - `materialize-gate2-staging-times.py`：在已验证 staging 上精确写入 Gate 1 mtime；
+- `build-gate2-ext4-candidate.sh`：从已验证 staging 和 metadata 构建一份
+  `development-unverified` raw ext4 候选；不生成 sparse、不调用设备接口；
 - `normalize-gate2-ext4.sh`：对候选 raw ext4 执行已验证的 post-build 归一化并运行 `e2fsck`。
 
 `tools/gate2-builder/` 是锁定的 Linux 构建器定义。Gate 2 的所有脚本只处理私有镜像和

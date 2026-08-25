@@ -56,12 +56,12 @@ Gate 1 已由无挂载 direct-ext4 解析和 Linux `ro,noload` 内核视图双�
 ### Gate 2 — 无修改文件级重建
 
 - [x] 锁定 builder、Android metadata、旧内核 feature set 与 verified-boot 架构；
-- [ ] 从只读清单重建 ext4；
-- [ ] 保持分区容量，不扩大 system；
-- [ ] 比较路径、内容哈希、权限、所有者、链接、xattrs、capabilities 和 SELinux 标签；
-- [ ] 运行只读文件系统检查；
+- [x] 从只读清单重建 ext4；
+- [x] 保持分区容量，不扩大 system；
+- [x] 比较路径、内容哈希、权限、所有者、链接、xattrs、capabilities 和 SELinux 标签；
+- [x] 运行只读文件系统检查；
 - [ ] 重新生成 sparse system，并验证可由 fastboot 解析；
-- [ ] 差异为零或每一项都有明确、可接受的解释。
+- [ ] 差异为零或每一项都有明确、可接受的解释（journal blocks 仍待裁定）。
 
 ### Gate 3 — 最小有意修改
 
@@ -97,5 +97,6 @@ Spotify、耳机 HiFi、温度和恢复测试。音频闭包、PackageManager �
 
 Gate 1 的双证据工具链已通过，Gate 2 的 labeling、ext4 builder 与 verified-boot 双轨边界
 也已由 [`12-PHASE-3-GATE2-UNMODIFIED-REBUILD-CONTRACT.md`](12-PHASE-3-GATE2-UNMODIFIED-REBUILD-CONTRACT.md)
-锁定。下一步是机械实现：固定容器、生成 staging/metadata 输入、完成两次本机构建和逐项
-语义比较；在此之前不生成可刷入 ROM，更不写入设备。
+锁定。现已完成两次本机 raw ext4 构建和逐项语义比较；详见
+[`2026-08-25-phase3-gate2-candidate-audit.md`](reviews/2026-08-25-phase3-gate2-candidate-audit.md)。
+在 journal 差异裁定前不生成 sparse ROM，更不写入设备。

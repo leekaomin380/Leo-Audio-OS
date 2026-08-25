@@ -41,11 +41,22 @@ docker run --rm --network none --read-only --entrypoint /bin/sh \
     for command in \
       "set_super_value min_extra_isize 28" \
       "set_super_value want_extra_isize 28" \
+      "punch /lost+found 1" \
+      "set_inode_field <11> size 4096" \
       "set_inode_field <11> atime 0" \
       "set_inode_field <11> ctime 0" \
       "set_inode_field <11> mtime 0"; do
       /opt/e2fsprogs/sbin/debugfs -w -R "$command" "$image"
     done > /report/debugfs-normalize.txt 2>&1
+    # debugfs updates s_wtime while closing a writable filesystem. The stock
+    # image stores zero in these source-derived superblock fields. Patch only
+    # their fixed-width bytes after close: wtime (0x30), lastcheck (0x40),
+    # htree seed (0xec; safe because dir_index is absent), and mkfs_time
+    # (0x108). Absolute offsets include the 1024-byte superblock start.
+    dd if=/dev/zero of="$image" bs=1 seek=1072 count=4 conv=notrunc status=none
+    dd if=/dev/zero of="$image" bs=1 seek=1088 count=4 conv=notrunc status=none
+    dd if=/dev/zero of="$image" bs=1 seek=1260 count=16 conv=notrunc status=none
+    dd if=/dev/zero of="$image" bs=1 seek=1288 count=4 conv=notrunc status=none
     /opt/e2fsprogs/sbin/dumpe2fs -h "$image" > /report/superblock.txt 2>&1
     /opt/e2fsprogs/sbin/debugfs -R "stat <11>" "$image" > /report/lost-found.txt 2>&1
     /opt/e2fsprogs/sbin/e2fsck -f -n "$image" > /report/e2fsck.txt 2>&1
@@ -53,5 +64,8 @@ docker run --rm --network none --read-only --entrypoint /bin/sh \
 
 rg -q 'Required extra isize:[[:space:]]+28' "$report_dir/superblock.txt"
 rg -q 'Desired extra isize:[[:space:]]+28' "$report_dir/superblock.txt"
+rg -q 'Size:[[:space:]]+4096' "$report_dir/lost-found.txt"
+rg -q 'Last write time:[[:space:]]+Thu Jan  1 00:00:00 1970' "$report_dir/superblock.txt"
+rg -q 'Last checked:[[:space:]]+Thu Jan  1 00:00:00 1970' "$report_dir/superblock.txt"
 rg -q 'mtime: 0x00000000:00000000' "$report_dir/lost-found.txt"
 printf 'normalization_valid=true\n' > "$report_dir/verification.txt"

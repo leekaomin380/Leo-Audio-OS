@@ -91,7 +91,8 @@ hash tree。
   `has_journal ext_attr resize_inode filetype extent sparse_super large_file uninit_bg`；
 - 不得出现 `64bit`、`metadata_csum`、`flex_bg`、`huge_file`、`dir_index` 或其他原厂没有的
   feature；
-- errors behavior、inode/group geometry、journal 大小和 reserved GDT 必须记录并比较；上述
+- errors behavior、inode/group geometry、journal 大小和 reserved GDT 必须记录并比较；候选以
+  `resize=432046080` 固定 103 个 reserved GDT blocks；上述
   原厂值是优先目标，不能精确复现的物理参数要在候选 profile 中固定并由高智能档单项裁定；
 - root 与 `/lost+found` mtime 为 epoch 0，其余 3921 条路径为 1230739200；
 - 两次独立构建必须先做到语义清单逐项相同；目标是 raw ext4 也逐字节相同。若 raw hash
@@ -107,9 +108,9 @@ epoch 0，其余普通目录项按清单设为 1230739200；`e2fsdroid` 从 stag
 
 已完成的最小实验表明：`E2FSPROGS_FAKE_TIME=0` 会被 mke2fs 解释为“未指定”并回退到真实时钟，
 因此不能满足 epoch 0；`E2FSPROGS_FAKE_TIME=1` 可稳定建立固定初始文件系统。随后必须运行受控
-`debugfs` 后处理，只把 `/lost+found` 的 atime/ctime/mtime 置为 0，并把 superblock 的
-`min_extra_isize`/`want_extra_isize` 置为原厂的 28。这个归一化步骤已在最小镜像上经 `e2fsck -f -n`
-验证，不能省略，也不能用 2009 静默替代 epoch 0。
+`debugfs` 后处理，把 `/lost+found` 的 atime/ctime/mtime 置为 0、缩小这个空目录至原厂的 4096
+bytes，并把 superblock 的 `min_extra_isize`/`want_extra_isize` 置为原厂的 28。这个归一化步骤已在
+最小镜像和完整候选上经 `e2fsck -f -n` 验证，不能省略，也不能用 2009 静默替代 epoch 0。
 
 ## 6. 内容 staging 契约
 
