@@ -14,8 +14,8 @@ Leo Audio OS 是一个面向 Xiaomi Mi Note Pro（代号 `leo`）的长期开放
 ## 当前状态
 
 项目已经完成 **Phase 1：音频依赖闭包 v0.2**，冻结了 **Phase 2：播放器 Shell 原型
-v0.2.7 基线**，并进入 **Phase 3：MIUI 原型固件构建器**。Phase 3 Gate 0 已证明精确
-ROM 输入与 sparse 容器往返可信；尚未进行 ext4 文件级重建，也没有刷写系统镜像。
+v0.2.7 基线**，以及 **Phase 3 Gate 2：无修改 system 重建与 development-unverified 容器**。
+Gate 2 已完成 ext4 文件级语义重建和 sparse 回环；没有刷写系统镜像。
 
 - 还没有可供刷入的 Leo Audio OS 固件；
 - 当前实机仍运行已验证的 MIUI 9 HiFi 播放器方案；
@@ -52,7 +52,9 @@ ROM 输入与 sparse 容器往返可信；尚未进行 ext4 文件级重建，�
 - [09：Phase 2 播放器 Shell 原型路书](docs/09-PHASE-2-PLAYER-SHELL-RUNBOOK.md)
 - [10：Phase 3 MIUI 原型固件构建器路书](docs/10-PHASE-3-MIUI-BUILDER-RUNBOOK.md)
 - [11：Phase 3 Gate 1 ext4 元数据审计契约](docs/11-PHASE-3-GATE1-EXT4-AUDIT-CONTRACT.md)
+- [12：Phase 3 Gate 2 无修改重建契约](docs/12-PHASE-3-GATE2-UNMODIFIED-REBUILD-CONTRACT.md)
 - [Phase 2 基线冻结记录](docs/reviews/2026-08-24-phase2-baseline-freeze.md)
+- [Phase 3 Gate 2 冻结记录](docs/reviews/2026-08-25-phase3-gate2-freeze.md)
 - [Phase 3 Gate 0 评审](docs/reviews/2026-08-24-phase3-gate0.md)
 - [产品愿景与命名](docs/VISION.md)
 - [初始系统架构](docs/ARCHITECTURE.md)
