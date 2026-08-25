@@ -14,13 +14,15 @@ Leo Audio OS 是一个面向 Xiaomi Mi Note Pro（代号 `leo`）的长期开放
 ## 当前状态
 
 项目已经完成 **Phase 1：音频依赖闭包 v0.2**，冻结了 **Phase 2：播放器 Shell 原型
-v0.2.7 基线**，并完成 **Phase 3 Gate 3：最小 Leo Shell system 集成的本机静态门禁**。
-Gate 3 已证明二路径 overlay、独立 APK 签名、ext4 可复现重建和 sparse 回环；没有刷写系统镜像。
+v0.2.7 基线**，完成 **Phase 3 Gate 3：最小 Leo Shell system 集成的本机静态门禁**，并完成
+**Phase 4 Gate 2：development system/boot 配对的离线闭环**。尚未刷写项目系统镜像。
 
 - 还没有可供刷入的 Leo Audio OS 固件；
 - 当前实机仍运行已验证的 MIUI 9 HiFi 播放器方案；
 - 当前 MIUI 上的 Leo HOME Shell v0.2.7 已完成可逆安装验证；
-- Gate 3 development container 没有新的 verity/FEC 和配套 boot，禁止写入设备；
+- 已独立验证原厂 Merkle tree、metadata RSA signature、FEC 与 boot/recovery BootSignature；
+- 锁定工具链已逐字节复现原厂 tree/FEC，并双构建出可重复的 development system/boot 配对；
+- development pair 使用一次性测试密钥，manifest 明确拒绝设备写入；
 - 不应根据本仓库当前内容执行分区写入；
 - 原厂音频运行路径、HAL/ELF、stock boot/DTB、首批内核配置和 SELinux 有效授权
   闭包已经建立；最终最小保留集仍待功能与故障测试证明。
@@ -55,10 +57,14 @@ Gate 3 已证明二路径 overlay、独立 APK 签名、ext4 可复现重建和 
 - [11：Phase 3 Gate 1 ext4 元数据审计契约](docs/11-PHASE-3-GATE1-EXT4-AUDIT-CONTRACT.md)
 - [12：Phase 3 Gate 2 无修改重建契约](docs/12-PHASE-3-GATE2-UNMODIFIED-REBUILD-CONTRACT.md)
 - [13：Phase 3 Gate 3 最小 Leo Shell 集成契约](docs/13-PHASE-3-GATE3-MINIMAL-SHELL-CONTRACT.md)
+- [14：Phase 4 旧式 Verified Boot 与恢复契约](docs/14-PHASE-4-LEGACY-VERIFIED-BOOT-CONTRACT.md)
 - [Phase 2 基线冻结记录](docs/reviews/2026-08-24-phase2-baseline-freeze.md)
 - [Phase 3 Gate 2 冻结记录](docs/reviews/2026-08-25-phase3-gate2-freeze.md)
 - [Phase 3 Gate 3 候选审计](docs/reviews/2026-08-25-phase3-gate3-candidate-audit.md)
 - [Phase 3 Gate 3 冻结记录](docs/reviews/2026-08-25-phase3-gate3-freeze.md)
+- [Phase 4 Gate 0 verified-boot 审计](docs/reviews/2026-08-25-phase4-gate0-verified-boot-audit.md)
+- [Phase 4 Gate 1/2 离线构建审计](docs/reviews/2026-08-25-phase4-gate1-gate2-offline-pair.md)
+- [Phase 4 首次受控写入路书](docs/15-PHASE-4-FIRST-WRITE-RUNBOOK.md)
 - [Phase 3 Gate 0 评审](docs/reviews/2026-08-24-phase3-gate0.md)
 - [产品愿景与命名](docs/VISION.md)
 - [初始系统架构](docs/ARCHITECTURE.md)

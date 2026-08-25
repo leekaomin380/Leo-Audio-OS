@@ -1,0 +1,26 @@
+diff --git a/verity/build_verity_tree.cpp b/verity/build_verity_tree.cpp
+index c50e449..3a1fc2e 100644
+--- a/verity/build_verity_tree.cpp
++++ b/verity/build_verity_tree.cpp
+@@ -90,7 +90,7 @@ int hash_blocks(const EVP_MD *md,
+     return 0;
+ }
+ 
+-int hash_chunk(void *priv, const void *data, int len)
++int hash_chunk(void *priv, const void *data, size_t len)
+ {
+     struct sparse_hash_ctx *ctx = (struct sparse_hash_ctx *)priv;
+     assert(len % ctx->block_size == 0);
+diff --git a/verity/fec/image.cpp b/verity/fec/image.cpp
+index a378c93..7e6c18b 100644
+--- a/verity/fec/image.cpp
++++ b/verity/fec/image.cpp
+@@ -187,7 +187,7 @@ static void mmap_image_load(const std::vector<int>& fds, image *ctx,
+ }
+ 
+ #ifndef IMAGE_NO_SPARSE
+-static int process_chunk(void *priv, const void *data, int len)
++static int process_chunk(void *priv, const void *data, size_t len)
+ {
+     image *ctx = (image *)priv;
+     assert(len % FEC_BLOCKSIZE == 0);

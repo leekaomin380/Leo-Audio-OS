@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "set_id": "leo-phase4-development-pair-v0.1",
+  "classification": "phase4_development_probe_pair_not_for_device_write",
+  "device": {
+    "vendor": "Xiaomi",
+    "product": "Mi Note Pro",
+    "codename": "leo",
+    "stock_build": "V9.2.3.0.NXHCNEK",
+    "android": "7.0"
+  },
+  "device_write_authorized": false,
+  "allowed_partitions": [],
+  "key_ceremony": {
+    "formal_release_keys": false,
+    "independent_offline_copies": 0,
+    "recovery_readback_verified": false,
+    "ruling": "disposable development probe identities only; never flash this tuple"
+  },
+  "builder": {
+    "legacy_verified_boot_image_id": "sha256:1dcbf603cec7f3546fb3edc3712142f1bb498cdc950404f76fa9edcdfdbdf935",
+    "img2simg_sha256": "f7890b444cf7f205ed6ea57a77a397781a9f10e395526a243a0287c8bef8ed4e",
+    "simg2img_sha256": "15834fdaf9d23145d8a18fa9ec358f1ebbfe55058a384bee13d2630d477f397f"
+  },
+  "artifacts": {
+    "gate3_ext4": {
+      "size": 1717571584,
+      "sha256": "10857ee55fd85f485febd15407b58b4da6dc95ba2ef932826ef505d38342574c"
+    },
+    "system_raw": {
+      "size": 1744830464,
+      "sha256": "51f9cfb8bc54342256a596658ef17c50aea65ef567a60dc053168b720159ae24"
+    },
+    "system_sparse": {
+      "size": 1336991832,
+      "sha256": "49e9c2cdc5217e2e94f6a02e4f7bc176988ffdcd06ecd5ac54999bcda0e11493"
+    },
+    "project_boot": {
+      "size": 24192088,
+      "sha256": "772c5be02dc47780912c4c6c79dd4f982766483516947f7a663ab30643a616aa"
+    },
+    "verity_public_key": {
+      "size": 524,
+      "sha256": "edc308ba5cfb572c34393fd75da95a5e31d06194f8a9d7c16d82edee70986fa2"
+    },
+    "boot_certificate": {
+      "size": 817,
+      "sha256": "4041e2804879ab300053973ddc9ba75591ca5dee60abd3e3d5267f39c575eba0"
+    },
+    "stock_boot": {
+      "size": 24188234,
+      "sha256": "bc64d15c26c53644e0d66e8dd3dc9e9c52bf2d4e4267d3c9f71ee90455e567d5"
+    },
+    "stock_recovery": {
+      "size": 26518862,
+      "sha256": "4aafc56e0feb5be5213a58e9bc770730d9cf3746a9b4ee31bc79d6484af461e0"
+    },
+    "development_boot_fallback": {
+      "size": 24384810,
+      "sha256": "1d3f7a3792e4eb704ee5a8f947e762d6a5b7076a2bdd3e36499188d068cc708f"
+    }
+  },
+  "pair": {
+    "root_hash": "d3fa2c8d1393dabfb6ca1cf0b995bb3b93cecd884459d3f8af0a5aaf5877cd7a",
+    "salt": "aee087a5be3b982978c923f566a94613496b417f2af592639bc80d141e34dfe7",
+    "verity_tree_sha256": "487cc56fd9001937d73c41bbdd3778e19a0836fc321c62a16af8db413b72d53e",
+    "verity_metadata_sha256": "8ef90977dc349f61779b4ed86f1ab5b4d36139d777143412e88fd0c07cc010d4",
+    "fec_sha256": "b57f2b3221efdea97b71f59aaa1755b0ebf702cb548ce54f92765bcb6385b53b",
+    "boot_signature_target": "/boot",
+    "boot_signature_algorithm": "sha256WithRSAEncryption"
+  },
+  "double_build": {
+    "system_raw_identical": true,
+    "system_sparse_identical": true,
+    "project_boot_identical": true
+  },
+  "fault_injection": {
+    "fault_count": 8,
+    "all_faults_rejected": true
+  },
+  "remaining_gates": [
+    "formal leo-verity-v1 and leo-boot-v1 key ceremony",
+    "two independent offline encrypted copies and recovery readback",
+    "device identity and current-partition read-only preflight",
+    "temporary exact-stock recovery boot and rescue-path test",
+    "separate explicit user confirmation immediately before the first system write"
+  ]
+}

@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "device": "Xiaomi Mi Note Pro (leo/MSM8994)",
+  "source_build": "V9.2.3.0.NXHCNEK",
+  "classification": "phase4_gate0_legacy_verified_boot_profile",
+  "android_generation": "Android 7 legacy dm-verity plus Android BootSignature v1; not AVB 2.0",
+  "pinned_aosp": {
+    "tag": "android-7.0.0_r1",
+    "repositories": {
+      "platform/system/extras": "aa3f820033cfaf3a61d1e3cc617309ae652f0c4f",
+      "platform/system/core": "88f64719d75620d144af5bba39a00a3f178ae60a",
+      "platform/build": "17e1629562b7e4d904408218673da918eb585143",
+      "platform/external/fec": "791afbe58ff9f55145c4adf632ab8cc9ca6e5686"
+    },
+    "source_files": [
+      {
+        "path": "platform/system/extras/verity/BootSignature.java",
+        "sha256": "14d010fbac6843d639d851feaac7d1d22aed3c32fb87f6eaffcf7447c4da0c83"
+      },
+      {
+        "path": "platform/system/extras/verity/VeritySigner.java",
+        "sha256": "222679e2e2757773e422f1a182037ea0e0fb7e3aa7e06420477df2edbd0ee86c"
+      },
+      {
+        "path": "platform/system/extras/verity/Utils.java",
+        "sha256": "81ecfeaba948078e421830fd516f9890e816ab987b43387a7d06cd5f3565854e"
+      },
+      {
+        "path": "platform/system/extras/verity/build_verity_metadata.py",
+        "sha256": "1565e47d78279cf2b130cd02f67b45e2e0e91befb10e78108a81878226a219e4"
+      },
+      {
+        "path": "platform/system/extras/verity/build_verity_tree.cpp",
+        "sha256": "399d4291f60fe9e353d29ea5f6769f34429289cf6637031a338979b995435350"
+      },
+      {
+        "path": "platform/system/extras/verity/generate_verity_key.c",
+        "sha256": "19728b942a148a1bb537b77a280f5f69384e8a965d91a6a2da541e51156aafe7"
+      },
+      {
+        "path": "platform/system/extras/verity/fec/main.cpp",
+        "sha256": "85a4e239b59f1e21eb0b1b41d2050df77968ac967bce6bbf48fbd3ceaacc12f1"
+      },
+      {
+        "path": "platform/system/extras/verity/fec/image.cpp",
+        "sha256": "bf1d2fa56e17167065be2ee038fbf33a850a486cf301c771baea311b6e862fef"
+      },
+      {
+        "path": "platform/system/extras/libfec/include/fec/io.h",
+        "sha256": "455859083b09341bb685a6b7c3d31c432a36e712810e1103a46e5e0ebe54b966"
+      },
+      {
+        "path": "platform/system/core/fs_mgr/fs_mgr_verity.cpp",
+        "sha256": "86ef2844c247778c91eae08e7ddf2a839a0816f49ac5dee0e0d78d41b98c0a6e"
+      },
+      {
+        "path": "platform/system/core/include/mincrypt/rsa.h",
+        "sha256": "e329c135cd3677345042579fe88eac1f3207ece1c335fa4c7e98298f7b49ed91"
+      },
+      {
+        "path": "platform/build/tools/releasetools/build_image.py",
+        "sha256": "d95ccccb64da3fa4f6d5ef21629ae149a889ac543b0a85d01b3eb4442218da6f"
+      }
+    ]
+  },
+  "gate1_toolchain_reproduction": {
+    "builder_image_id": "sha256:1dcbf603cec7f3546fb3edc3712142f1bb498cdc950404f76fa9edcdfdbdf935",
+    "clean_source_patch_rebuild_image_id": "sha256:9a9915a02f0ae92a870063d0cecbe28bbc9edcc9a296a001f56c5af7d9979845",
+    "build_verity_tree_sha256": "913fc8064e5a26760832db7e731f5efc63718e78f96eb3b1bcfc2dfcd4d46725",
+    "fec_sha256": "73de38bc4cbd5b4655c4b261e5937278bb6fd53b5bd0f8a015362b33caad74f6",
+    "gzip_sha256": "d3afaebcb97bf6fa214a813d89b108f48955665ea596228340ec80580ee55a0e",
+    "rebuild_tools_match_reference_byte_for_byte": true,
+    "stock_verity_tree_reproduced_byte_for_byte": true,
+    "stock_fec_reproduced_byte_for_byte": true,
+    "two_builds_identical": true
+  },
+  "stock_chain": {
+    "system_partition_sha256": "ec6edfd79adb1f6053adcc6fcb1927fabd93fe3756d9e7c7af8a7abd0dcd3e7d",
+    "system_partition_bytes": 1744830464,
+    "ext4_blocks": 419329,
+    "verity_tree_blocks": 3304,
+    "verity_tree_sha256": "90bf3e38b94b6fa18e22a57a622d2ff5f43d1ae20f6090ee2794e4cf0c289e50",
+    "verity_metadata_blocks": 8,
+    "verity_metadata_signature_valid": true,
+    "verity_root_hash": "ae95fea4b1220ff6fb08f3642d4e0ca02258a258b45f64b355ae411be6c56626",
+    "verity_salt": "aee087a5be3b982978c923f566a94613496b417f2af592639bc80d141e34dfe7",
+    "verity_key_format": "524-byte Android mincrypt RSA public key",
+    "verity_key_sha256": "c2848b5e28fa9b7156a2910e2d6d333bbab3f6c2e00b3db4aaac2785679d7145",
+    "fec_roots": 2,
+    "fec_payload_sha256": "8d781dad8f43912141fe890e997045e868dcb0d4a5fb77a31a2a6bf6611f106b",
+    "fec_payload_bytes": 13688832,
+    "boot_sha256": "bc64d15c26c53644e0d66e8dd3dc9e9c52bf2d4e4267d3c9f71ee90455e567d5",
+    "boot_signature_target": "/boot",
+    "boot_signature_algorithm": "sha256WithRSAEncryption",
+    "boot_signature_valid": true,
+    "recovery_sha256": "4aafc56e0feb5be5213a58e9bc770730d9cf3746a9b4ee31bc79d6484af461e0",
+    "recovery_signature_target": "/recovery",
+    "recovery_signature_algorithm": "sha256WithRSAEncryption",
+    "recovery_signature_valid": true
+  },
+  "successful_development_boot_observation": {
+    "image_sha256": "1d3f7a3792e4eb704ee5a8f947e762d6a5b7076a2bdd3e36499188d068cc708f",
+    "device_booted_successfully": true,
+    "footer_declared_algorithm": "sha1WithRSAEncryption",
+    "footer_cryptographic_matching_algorithm": "sha256WithRSAEncryption",
+    "footer_signature_valid_as_declared": false,
+    "ruling": "evidence that the unlocked device accepts this development boot; forbidden as a release-signing template"
+  },
+  "project_key_policy": {
+    "verity_key": {
+      "id": "leo-verity-v1",
+      "algorithm": "RSA-2048",
+      "exponent": 65537,
+      "metadata_signature": "SHA256withRSA PKCS1 v1.5",
+      "ramdisk_public_format": "524-byte Android mincrypt RSAPublicKey",
+      "private_key_location": "offline ignored storage only",
+      "generated": false
+    },
+    "boot_key": {
+      "id": "leo-boot-v1",
+      "algorithm": "RSA-2048",
+      "boot_signature": "Android BootSignature v1 SHA256withRSA target /boot",
+      "private_key_location": "offline ignored storage only",
+      "generated": false
+    },
+    "keys_are_separate": true,
+    "aosp_test_keys_allowed": false,
+    "xiaomi_private_keys_claimed": false
+  },
+  "release_tuple_required_members": [
+    "verified system raw and sparse images",
+    "stock-derived project-key boot image",
+    "exact stock boot rollback image",
+    "exact stock recovery image",
+    "compatible development boot fallback",
+    "release-set manifest with all hashes",
+    "offline verification report",
+    "recovery and first-write runbook"
+  ],
+  "device_write_authorized": false
+}

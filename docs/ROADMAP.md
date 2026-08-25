@@ -44,7 +44,12 @@
 
 ## Phase 4 — 恢复、签名与发布工程
 
+- [x] 独立验证原厂 dm-verity tree、metadata signature、FEC 与 boot/recovery BootSignature；
+- [x] 固定 Android 7 legacy verified-boot 源码版本、system/boot 配对契约和首次写入安全顺序；
+- [x] 逐字节复现原厂 verity tree/FEC，并双构建 development system/boot/sparse 配对；
+- [x] 完成项目配对与 release-set 的故障注入和 fail-closed 校验；
 - [ ] 建立项目 release keys 与离线保管规则；
+- [ ] 用正式密钥重建并冻结首个 release-set；
 - [ ] 构建并临时启动 recovery，实测 USB-OTG、ADB、备份与恢复；
 - [ ] 实现启动计数、安全模式和 recovery 入口；
 - [ ] 生成签名的完整与增量更新；

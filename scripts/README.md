@@ -146,6 +146,29 @@ staging，禁止调用 ADB、fastboot 或任何设备写入接口。
 这些工具不创建密钥、不改 boot/verity/FEC、不调用 ADB、fastboot 或 recovery。它们只为 Gate 3
 的后续 ext4 重建提供经签名验证的私有输入。
 
+## Phase 4 Gate 0–2
+
+- `inspect-legacy-system-verity.py`：只读解析 raw system 的 ext4 几何、legacy dm-verity tree/
+  metadata 与 FEC；默认重算完整 Merkle tree，从 boot ramdisk 的 524-byte mincrypt 公钥重建
+  RSA SPKI，验证 table signature、root hash、tree 全字节和 FEC payload hash；
+- `inspect-legacy-boot-signature.py`：严格计算 legacy boot/recovery 的签名边界，解析 Android
+  BootSignature v1 DER footer，并用嵌入证书验证 target、authenticated length 与声明算法。默认
+  拒绝无效签名；`--allow-invalid-signature` 只用于记录历史 development boot，不构成验收。
+- `generate-legacy-verity-probe-key.py` 与 `generate-legacy-boot-probe-key.py`：只生成被 Git 忽略的
+  一次性开发身份；输出明确禁止发布，不能替代正式离线密钥仪式；
+- `build-legacy-verified-system.py`：用锁定 builder 生成 tree、metadata 与 FEC，组装完整 raw
+  system 并立即调用独立 verifier；
+- `build-legacy-project-boot.py`：只在原厂 cpio 的唯一 524-byte `verity_key` payload 中等长替换，
+  保持 kernel/DTB/cmdline/地址不变，并生成可独立验证的 BootSignature v1；
+- `verify-phase4-sparse-pair.py`：双构建 sparse 并执行 sparse→raw 全字节回环；
+- `fault-inject-phase4-pair.py`：对 system/boot 的 8 个内容与密钥边界做 fail-closed 测试；
+- `verify-phase4-release-set.py` 与 `fault-inject-phase4-release-set.py`：把 system、boot、公钥、证书、
+  stock recovery 和 fallback 绑定成不可混配 tuple，并验证缺文件、换 boot、错 key/cert 与 hash
+  mismatch 均被拒绝。verifier 永不代表用户授权写入。
+
+上述工具均不挂载镜像，也不含 ADB/fastboot 调用。公开 profile 固定 AOSP
+`android-7.0.0_r1` 源码提交和文件 hash；probe 私钥与所有构建镜像均在 Git 忽略区。
+
 ## 当前工具
 
 - `collect-audio-baseline.sh`：仅接受一台已授权、代号为 `leo` 且可获得 Root 的设备，
