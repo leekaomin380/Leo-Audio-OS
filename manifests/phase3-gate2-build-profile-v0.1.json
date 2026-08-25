@@ -97,6 +97,15 @@
       "label": "system",
       "uuid": "da594c53-9beb-f85c-85c5-cedf76546f7a",
       "reserved_block_count": 0,
+      "default_mount_options": [],
+      "default_directory_hash": "tea",
+      "hash_seed_uuid": "da594c53-9beb-f85c-85c5-cedf76546f7a",
+      "mke2fs_initial_time_seconds": 1,
+      "postbuild_normalization": {
+        "lost_found_atime_ctime_mtime_seconds": 0,
+        "min_extra_isize": 28,
+        "want_extra_isize": 28
+      },
       "required_features": [
         "has_journal",
         "ext_attr",
@@ -123,6 +132,7 @@
     "android_metadata": {
       "mountpoint": "/system",
       "fs_config_strategy": "exact_canned_entry_per_gate1_path",
+      "root_fs_config_encoding": "leading_space_empty_path",
       "selinux_strategy": "closed_world_literal_rule_per_gate1_path",
       "expected_entries": 3923,
       "expected_selinux_xattrs": 3923,

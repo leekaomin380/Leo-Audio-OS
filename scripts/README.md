@@ -107,6 +107,21 @@ python3 scripts/verify-audio-classification.py
 - `derive-android-metadata.py`：从原始语义清单导出可审阅的 `fs_config` 候选与实际
   SELinux 标签表；它不替代原始 `file_contexts` 策略来源。
 
+## Phase 3 Gate 2
+
+- `generate-gate2-android-metadata.py`：从 Gate 1 私有语义清单生成完整 canned `fs_config`
+  与封闭世界 `file_contexts`；root 使用 canned parser 所要求的空路径记录；
+- `verify-gate2-selinux-lookups.sh`：以构建器内相同 libselinux 对全部路径、类型和标签做
+  3923 条逐项 lookup 验证；
+- `extract-gate2-system-staging.sh`：直接通过 ext4 inode 只读提取内容树，避免 Android 文件
+  权限妨碍内核挂载读取；不复制 xattr/ACL，后续由 Gate 1 清单重建；
+- `verify-gate2-staging.py`：逐一验证 staging 文件内容 SHA-256、符号链接目标、类型和路径；
+- `materialize-gate2-staging-times.py`：在已验证 staging 上精确写入 Gate 1 mtime；
+- `normalize-gate2-ext4.sh`：对候选 raw ext4 执行已验证的 post-build 归一化并运行 `e2fsck`。
+
+`tools/gate2-builder/` 是锁定的 Linux 构建器定义。Gate 2 的所有脚本只处理私有镜像和
+staging，禁止调用 ADB、fastboot 或任何设备写入接口。
+
 ## 当前工具
 
 - `collect-audio-baseline.sh`：仅接受一台已授权、代号为 `leo` 且可获得 Root 的设备，

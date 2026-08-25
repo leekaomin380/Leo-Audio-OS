@@ -103,9 +103,13 @@ hash tree。
 
 不能直接给 `e2fsdroid` 使用单一全局 `-T`，因为原厂不是单一时间戳。staging root 设为
 epoch 0，其余普通目录项按清单设为 1230739200；`e2fsdroid` 从 staging `lstat` 读取时间。
-`/lost+found` 在 e2fsdroid 中是特殊路径，不执行普通 timestamp/permission 分支，因此它的
-epoch 0 必须由固定的 mke2fs 创建时间机制产生。该机制必须先做最小镜像实验并由输出 inode
-验证；若工具不支持确定性 epoch，停止并重新裁定，不能静默改成 2009。
+`/lost+found` 在 e2fsdroid 中是特殊路径，不执行普通 timestamp/permission 分支。
+
+已完成的最小实验表明：`E2FSPROGS_FAKE_TIME=0` 会被 mke2fs 解释为“未指定”并回退到真实时钟，
+因此不能满足 epoch 0；`E2FSPROGS_FAKE_TIME=1` 可稳定建立固定初始文件系统。随后必须运行受控
+`debugfs` 后处理，只把 `/lost+found` 的 atime/ctime/mtime 置为 0，并把 superblock 的
+`min_extra_isize`/`want_extra_isize` 置为原厂的 28。这个归一化步骤已在最小镜像上经 `e2fsck -f -n`
+验证，不能省略，也不能用 2009 静默替代 epoch 0。
 
 ## 6. 内容 staging 契约
 
@@ -132,8 +136,14 @@ Gate 1 的 TSV 是审计格式，不直接交给 `e2fsdroid`。Gate 2 为每条�
 system/<relative-path> uid gid permission-bits [capabilities=0x...]
 ```
 
-根路径映射为 `system`；`e2fsdroid` mountpoint 固定为 `/system`。mode 只输出权限位，文件
-类型由 inode 保留。每条 lookup 必须精确命中；任何缺项均失败。
+根路径在 canned 文件中编码为“行首空格后直接给 uid”的空路径记录，而不是 `system`；这是
+`e2fsdroid` 在调用 canned `fs_config` 前把 mountpoint root 转为 `""` 的实际接口约束。其余
+路径使用 `system/<relative-path>`；`e2fsdroid` mountpoint 固定为 `/system`。mode 只输出权限位，
+文件类型由 inode 保留。每条 lookup 必须精确命中；任何缺项均失败。
+
+候选先以 raw ext4 创建，因此调用 `e2fsdroid` 时必须显式使用 `-e`；不带该参数会按 Android
+sparse 格式打开 raw 文件并在写入前失败。最小集成镜像已验证 `-e` 后可加载全部 3923 条
+`fs_config`、写入 SELinux xattr，且 `e2fsck -f -n` 通过。
 
 5 个 `security.capability` xattr 均为 VFS capability revision 2、effective flag、仅 permitted
 位非零，可以无损转换为 64-bit capability mask：

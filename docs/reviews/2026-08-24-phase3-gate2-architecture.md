@@ -75,7 +75,8 @@ literal rule，并通过同一 libselinux 对 3923 个路径/mode 做 lookup 全
 `e2fsck` 返回需要修正。复制它只能复制缺陷，不能提高旧内核兼容性。
 
 现代 AOSP 的 [`mkuserimg_mke2fs.py`](https://android.googlesource.com/platform/system/extras/+/master/ext4_utils/mkuserimg_mke2fs.py)
-明确以 `mke2fs` 建文件系统，再由 `e2fsdroid` 接收时间戳、`fs_config` 和 `file_contexts`。
+明确以 `mke2fs` 建文件系统，再由 `e2fsdroid` 接收时间戳、`fs_config` 和 `file_contexts`。本项目
+候选是 raw ext4，故 `e2fsdroid` 必须带 `-e`；默认 sparse 打开方式会在写入前失败。
 [`e2fsdroid` 的 metadata 实现](https://android.googlesource.com/platform/external/e2fsprogs/+/34f4f33/contrib/android/perms.c)
 会把 UID/GID/mode 写入 inode，把 64-bit capability mask 编码为 VFS capability xattr，并以
 `selabel_lookup` 结果写入带结尾 NUL 的 SELinux xattr。
@@ -88,8 +89,9 @@ literal rule，并通过同一 libselinux 对 3923 个路径/mode 做 lookup 全
 - ext4 只有 419329 blocks；425984 blocks 是包含 verity/FEC 的外层分区容量；
 - 5 个 capability xattr 可无损映射为 `0x400`（4 条）与 `0xc0`（`run-as`）；
 - root 与 `/lost+found` mtime 为 0，其他 3921 条为 1230739200；
-- 不能用单一 `e2fsdroid -T` 覆盖所有路径；root 从 staging 保留 epoch 0，`lost+found` 由
-  固定 mke2fs 创建时间产生并单独验收；
+- 不能用单一 `e2fsdroid -T` 覆盖所有路径；root 从 staging 保留 epoch 0。`lost+found`
+  由 mke2fs 的固定初始时间建立，再由受控 `debugfs` 归一为 epoch 0；最小镜像已通过
+  `e2fsck -f -n` 验证；
 - 源树没有 hardlink、device node、FIFO、socket，减少了 staging 歧义；
 - root 权限/owner 依赖 mke2fs 默认值，`lost+found` 是 e2fsdroid 的特殊路径，二者必须单独
   做输出验证；
