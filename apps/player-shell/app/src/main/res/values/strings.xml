@@ -20,7 +20,7 @@
     <string name="open_vpn">VPN 设置</string>
     <string name="open_spotify_details">Spotify 应用信息</string>
     <string name="open_stock_home">打开原厂 MIUI 桌面</string>
-    <string name="open_shell_details">Leo Shell 应用信息（清除默认/卸载）</string>
+    <string name="open_shell_details">Leo Shell 应用信息（清除默认/停用）</string>
     <string name="close_maintenance">退出维护预览</string>
     <string name="maintenance_action_failed">系统没有提供这个设置入口。</string>
     <string name="maintenance_auth_title">维护认证</string>
@@ -39,6 +39,6 @@
     <string name="pin_wrong">PIN 不正确，还可尝试 %1$d 次。</string>
     <string name="pin_locked">维护入口仍在锁定，请等待约 %1$d 秒。</string>
     <string name="stock_home_confirm_title">打开 MIUI 桌面？</string>
-    <string name="stock_home_confirm_message">这会退出维护会话并显式打开原厂桌面，不会删除 Leo Shell。若要恢复默认 HOME，请随后进入 Leo Shell 应用信息清除默认项或卸载。</string>
+    <string name="stock_home_confirm_message">这会退出维护会话并显式打开原厂桌面，不会删除 Leo Shell。若要恢复默认 HOME，请随后进入 Leo Shell 应用信息清除默认项；预装版本需要在维护路径中停用，而不是依赖卸载。</string>
     <string name="stock_home_confirm_action">打开 MIUI 桌面</string>
 </resources>

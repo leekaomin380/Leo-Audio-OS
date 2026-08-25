@@ -37,9 +37,10 @@
 - [x] 完成两次本地无修改 ext4 重建、语义同一性、journal 对齐与 `e2fsck = 0`；
 - [x] 完成开发态零尾分区与 Android sparse 容器回环，验证完整 raw 字节不变；
 - [ ] 解包、精简并重建只读 system 镜像；
-- [ ] 集成 Shell、维护组件和保守性能策略；
-- [ ] 不重新分发 Xiaomi、Google 或 Spotify 文件；
-- [ ] 生成构建清单、SBOM、哈希和恢复说明。
+- [x] 以二路径差异集成独立签名的最小 Shell，并保留 MIUI Launcher；
+- [ ] 集成完整维护组件和保守性能策略；
+- [x] 不重新分发 Xiaomi、Google 或 Spotify 文件；
+- [x] 为 Gate 3 生成构建清单、SBOM、哈希和恢复边界。
 
 ## Phase 4 — 恢复、签名与发布工程
 

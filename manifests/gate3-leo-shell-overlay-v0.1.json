@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "classification": "development-unverified",
+  "base_tag": "phase3-gate2-v0.1",
+  "package": "io.github.leoaudio.shell",
+  "version_code": 10,
+  "version_name": "0.3.0-gate3.1-home",
+  "apk_sha256": "8a81a01f22098ba1b95be72d8fa333ad200738f16029c865f90b9669e57489ff",
+  "apk_size_bytes": 29543,
+  "mtime_epoch": 1230739200,
+  "entries": [
+    {
+      "path": "/app/LeoShell",
+      "type": "directory",
+      "uid": 0,
+      "gid": 0,
+      "mode_octal": "040755",
+      "selinux_label": "u:object_r:system_file:s0"
+    },
+    {
+      "path": "/app/LeoShell/LeoShell.apk",
+      "type": "regular",
+      "uid": 0,
+      "gid": 0,
+      "mode_octal": "100644",
+      "selinux_label": "u:object_r:system_file:s0",
+      "content_sha256": "8a81a01f22098ba1b95be72d8fa333ad200738f16029c865f90b9669e57489ff"
+    }
+  ]
+}

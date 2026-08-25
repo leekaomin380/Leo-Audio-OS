@@ -10,8 +10,8 @@ android {
         applicationId "io.github.leoaudio.shell"
         minSdk 24
         targetSdk 36
-        versionCode 9
-        versionName "0.2.7-dev.1"
+        versionCode 10
+        versionName "0.3.0-gate3.1"
     }
 
     flavorDimensions += "mode"
@@ -45,6 +45,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
+    // Gate 3 is deliberately Java-only.  AGP 9 otherwise injects kotlin-stdlib
+    // even though this module has no Kotlin source or runtime dependency.
+    enableKotlin = false
 
     buildFeatures {
         buildConfig true

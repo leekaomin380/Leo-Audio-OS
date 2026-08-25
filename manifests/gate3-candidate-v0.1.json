@@ -1,0 +1,43 @@
+{
+  "schema": 1,
+  "classification": "development-unverified",
+  "device": "Xiaomi Mi Note Pro (leo/MSM8994)",
+  "base_tag": "phase3-gate2-v0.1",
+  "intentional_change": {
+    "added_paths": [
+      "/app/LeoShell",
+      "/app/LeoShell/LeoShell.apk"
+    ],
+    "apk_sha256": "8a81a01f22098ba1b95be72d8fa333ad200738f16029c865f90b9669e57489ff",
+    "apk_size_bytes": 29543,
+    "signer_certificate_sha256": "4f81ed58df81e8d51b18f396bfe53ce09ba92396494afdc980e3f6746eccc7db"
+  },
+  "semantic_evidence": {
+    "base_entries": 3923,
+    "candidate_entries": 3925,
+    "candidate_entries_sha256": "2479d0804a685a20562c322e5d0f8e7a47c62fd63490a64c300674925500f160",
+    "audio_compatibility_entries_verified": 17,
+    "miui_home_apk_sha256": "03a380c1b5ce656e310b275ceb8bce61122764e9a56dc05d941d04ecea4a317c"
+  },
+  "filesystem": {
+    "raw_ext4_sha256": "10857ee55fd85f485febd15407b58b4da6dc95ba2ef932826ef505d38342574c",
+    "raw_ext4_bytes": 1717571584,
+    "independent_candidates_byte_identical": true,
+    "block_size": 4096,
+    "block_count": 419329,
+    "free_block_delta_from_gate2": -9,
+    "inode_count": 104832,
+    "free_inode_delta_from_gate2": -2,
+    "e2fsck_read_only_passed": true
+  },
+  "development_container": {
+    "partition_raw_sha256": "a62fb0ba221ceea4a1a9c52ba7308853f561b04ce588bc97fa250258a027141b",
+    "partition_bytes": 1744830464,
+    "zero_tail_bytes": 27258880,
+    "sparse_sha256": "50c264caecb29533d3d1150c73a7f60ba107dd8078d7c6a7d32bbf77dc153334",
+    "sparse_bytes": 1309761584,
+    "sparse_raw_roundtrip_byte_identical": true
+  },
+  "write_to_device_authorized": false,
+  "boot_verity_fec_ready": false
+}

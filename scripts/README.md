@@ -128,6 +128,24 @@ python3 scripts/verify-audio-classification.py
 `tools/gate2-builder/` 是锁定的 Linux 构建器定义。Gate 2 的所有脚本只处理私有镜像和
 staging，禁止调用 ADB、fastboot 或任何设备写入接口。
 
+## Phase 3 Gate 3
+
+- `verify-gate3-shell-apk.py`：拒绝不满足 Gate 3 package/version、最小 Manifest、单 dex、
+  零 Kotlin/native/嵌入式载荷与独立 v1/v2 signer 的 release APK；
+- `create-gate3-shell-overlay.py`：仅在上述签名验证通过后，生成包含
+  `/app/LeoShell` 与 `LeoShell.apk` 的私有二路径 overlay；
+- `generate-gate3-semantic-input.py`：将已验证 overlay 加到冻结 Gate 2 语义清单，拒绝任意
+  第三路径、原有路径碰撞、错误 DAC/SELinux metadata 或 APK hash。
+- `verify-gate3-staging.py`：逐项检查 Gate 3 staging 的路径、类型、内容、链接和 mtime；
+- `compare-gate3-semantic.py`：只接受二路径新增，原厂属性必须精确不变，并把 inode allocator
+  地址与 `/app` link count 的可解释变化单独登记；
+- `verify-gate3-apk-provenance.py`：证明签名前后所有非签名 APK 成员名称和解压字节相同。
+- `verify-gate3-static-evidence.py`：冻结前总门禁；重新哈希两份 ext4、完整分区与 sparse，核对
+  APK 来源、metadata、音频闭包、MIUI Launcher、superblock 差异和 Git 私有材料边界。
+
+这些工具不创建密钥、不改 boot/verity/FEC、不调用 ADB、fastboot 或 recovery。它们只为 Gate 3
+的后续 ext4 重建提供经签名验证的私有输入。
+
 ## 当前工具
 
 - `collect-audio-baseline.sh`：仅接受一台已授权、代号为 `leo` 且可获得 Root 的设备，

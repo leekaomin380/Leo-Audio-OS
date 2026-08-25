@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "scope": "Phase 3 Gate 3 Leo Shell APK and development ext4 candidate build inputs",
+  "runtime_dependencies": [],
+  "application": {
+    "package": "io.github.leoaudio.shell",
+    "version_code": 10,
+    "version_name": "0.3.0-gate3.1-home",
+    "language": "Java",
+    "dex_files": 1,
+    "native_libraries": 0,
+    "declared_android_permissions": 0
+  },
+  "android_build": {
+    "gradle": "9.7.1",
+    "android_gradle_plugin": "9.3.2",
+    "jdk": "OpenJDK 26.0.2 Homebrew",
+    "compile_sdk": 36,
+    "min_sdk": 24,
+    "build_tools": "36.0.0",
+    "aapt2": "2.20-13193326",
+    "apksigner": "0.9",
+    "apk_signature_schemes": [
+      "v1",
+      "v2"
+    ]
+  },
+  "filesystem_build": {
+    "container_image_id": "sha256:e4c6224db7874deb9743a936101988a86d0daedb3d48cd94c6b640aac3bffb14",
+    "base": "Debian bookworm",
+    "e2fsprogs_source_revision": "ef148046cf58dc1009da35ed9edb7a7425e19f39",
+    "e2fsprogs_version": "1.46.6",
+    "filesystem_tools": [
+      "mke2fs",
+      "e2fsdroid",
+      "debugfs",
+      "e2fsck"
+    ]
+  },
+  "proprietary_inputs_distributed": false,
+  "private_keys_distributed": false
+}

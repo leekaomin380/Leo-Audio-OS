@@ -65,11 +65,11 @@ Gate 1 已由无挂载 direct-ext4 解析和 Linux `ro,noload` 内核视图双�
 
 ### Gate 3 — 最小有意修改
 
-- [ ] 只加入项目 release 签名的 Leo Shell；
-- [ ] MIUI Launcher 继续保留；
-- [ ] 不删除系统应用；
-- [ ] 生成 SBOM、文件差异、空间预算和回退说明；
-- [ ] 在不写设备的情况下完成全部静态门禁。
+- [x] 只加入项目 release 签名的 Leo Shell；
+- [x] MIUI Launcher 继续保留；
+- [x] 不删除系统应用；
+- [x] 生成 SBOM、文件差异、空间预算和回退说明；
+- [x] 在不写设备的情况下完成全部静态门禁。
 
 ### Gate 4 — 分层精简
 
@@ -100,5 +100,9 @@ Gate 1 的双证据工具链已通过，Gate 2 的 labeling、ext4 builder 与 v
 锁定。现已完成两次本机 raw ext4 构建和逐项语义比较；详见
 [`2026-08-25-phase3-gate2-candidate-audit.md`](reviews/2026-08-25-phase3-gate2-candidate-audit.md)。
 journal 已由精确 libext2fs API 闭合。开发态零填充 partition raw 与 Android sparse 容器已完成
-本机回环，完整分区 SHA-256 在回展开前后相同。下一步是审阅 Gate 2 全部证据、冻结该门并为
-Gate 3 的最小 Leo Shell 修改建立独立的差异与回退契约；仍不写入设备。
+本机回环，完整分区 SHA-256 在回展开前后相同；Gate 2 已冻结为 `phase3-gate2-v0.1`。
+Gate 3 的最小 Leo Shell 修改、签名、SELinux、差异与回退边界由
+[`13-PHASE-3-GATE3-MINIMAL-SHELL-CONTRACT.md`](13-PHASE-3-GATE3-MINIMAL-SHELL-CONTRACT.md)
+约束；两次 APK、签名和 ext4 构建以及 sparse/raw 回环已闭合，详见
+[`2026-08-25-phase3-gate3-candidate-audit.md`](reviews/2026-08-25-phase3-gate3-candidate-audit.md)。
+下一步另建 verified-boot/recovery gate；在项目 verity/FEC、配套 boot 和恢复路径闭合前仍不写入设备。

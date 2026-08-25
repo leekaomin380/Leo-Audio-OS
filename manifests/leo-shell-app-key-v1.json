@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "alias": "leo-shell-app-v1",
+  "purpose": "Leo Shell APK signing only; not Android platform, OTA or verity signing",
+  "subject": "CN=Leo Audio OS Shell, OU=Release Engineering, O=Leo Audio OS, C=CN",
+  "serial_hex": "b11cc06195ad2368",
+  "key_algorithm": "RSA",
+  "key_size_bits": 3072,
+  "signature_algorithm": "SHA256withRSA",
+  "not_before_utc": "2026-08-25T06:14:57Z",
+  "not_after_utc": "2056-08-17T06:14:57Z",
+  "certificate_sha256": "4f81ed58df81e8d51b18f396bfe53ce09ba92396494afdc980e3f6746eccc7db",
+  "certificate_file_sha256": "ce9a0b74ce962d9dfcf52ae652ef51beb5157c2523596d6043f706a6d855d6fe",
+  "public_key_sha256": "99578fe856c3697fc3262f99c6004c7696dea3ca78a3c26bf53cf8cc6aefa083",
+  "private_material_in_git": false
+}

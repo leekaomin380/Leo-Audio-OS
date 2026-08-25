@@ -76,6 +76,9 @@ def main() -> None:
     required_build_tokens = (
         'applicationId "io.github.leoaudio.shell"',
         "minSdk 24",
+        "versionCode 10",
+        'versionName "0.3.0-gate3.1"',
+        "enableKotlin = false",
         'safePreview {',
         'homeCandidate {',
         'buildConfigField "boolean", "HOME_CAPABLE", "false"',
@@ -128,6 +131,7 @@ def main() -> None:
     print("OK: initial prototype requests no Android permissions")
     print("OK: no boot receiver, secure-settings, or overlay capability")
     print("OK: API 24 and package identity are pinned")
+    print("OK: Gate 3 version identity and Java-only build are pinned")
     print("OK: dynamic HOME mode text is bound to the correct status view")
     print("OK: flavor labels do not replace compiled string resources")
     print("OK: layouts avoid the old-MIUI textAllCaps inflater fault")
