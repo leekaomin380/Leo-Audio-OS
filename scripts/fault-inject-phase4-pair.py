@@ -66,6 +66,7 @@ def main() -> int:
     parser.add_argument("--system-verification", required=True, type=Path)
     parser.add_argument("--boot-verification", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--formal-release", action="store_true")
     args = parser.parse_args()
 
     paths = [
@@ -143,7 +144,10 @@ def main() -> int:
 
     report = {
         "schema": 1,
-        "classification": "phase4-development-pair-fault-injection",
+        "classification": (
+            "phase4-formal-release-pair-fault-injection"
+            if args.formal_release else "phase4-development-pair-fault-injection"
+        ),
         "device_interface_available": False,
         "all_faults_rejected": all(item["rejected"] for item in results),
         "fault_count": len(results),

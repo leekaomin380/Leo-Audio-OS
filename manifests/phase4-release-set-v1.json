@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "set_id": "leo-phase4-release-set-v1",
+  "classification": "phase4_release_set",
+  "device": {
+    "vendor": "Xiaomi",
+    "product": "Mi Note Pro",
+    "codename": "leo",
+    "stock_build": "V9.2.3.0.NXHCNEK",
+    "android": "7.0"
+  },
+  "device_write_authorized": false,
+  "planned_write_scope": [
+    "system"
+  ],
+  "allowed_partitions": [],
+  "key_ceremony": {
+    "formal_release_keys": true,
+    "key_ids": {
+      "verity": "leo-verity-v1",
+      "boot": "leo-boot-v1"
+    },
+    "independent_offline_copies": 2,
+    "recovery_readback_verified": true,
+    "passphrases_exported_to_usb": false,
+    "ruling": "formal encrypted keys recovered after independent physical-media remount; this does not authorize a device write"
+  },
+  "builder": {
+    "legacy_verified_boot_image_id": "sha256:1dcbf603cec7f3546fb3edc3712142f1bb498cdc950404f76fa9edcdfdbdf935",
+    "img2simg_sha256": "f7890b444cf7f205ed6ea57a77a397781a9f10e395526a243a0287c8bef8ed4e",
+    "simg2img_sha256": "15834fdaf9d23145d8a18fa9ec358f1ebbfe55058a384bee13d2630d477f397f"
+  },
+  "artifacts": {
+    "gate3_ext4": {
+      "size": 1717571584,
+      "sha256": "10857ee55fd85f485febd15407b58b4da6dc95ba2ef932826ef505d38342574c"
+    },
+    "system_raw": {
+      "size": 1744830464,
+      "sha256": "e18a6fc83c59e09415d4a802a052c66fccf46e420b1f25f752e85546f8affad4"
+    },
+    "system_sparse": {
+      "size": 1336991832,
+      "sha256": "afa12b23e4570f96cc5e4ee70cf754779c75cf834a9d61f481f08d1a96e21eb1"
+    },
+    "project_boot": {
+      "size": 24192058,
+      "sha256": "dfca241d75d494e0d85502d1368a3475f0e2576dd69b28274fcf4532a2779685"
+    },
+    "verity_public_key": {
+      "size": 524,
+      "sha256": "3cf27ca96948c44721e34eb5732c992a073cdda71ae20df4a5c6065a9c6454b3"
+    },
+    "boot_certificate": {
+      "size": 787,
+      "sha256": "6ff446b8f360f6970632ad9d3c7aecff12d8a001f428f54e59daf806b44f7d72"
+    },
+    "stock_boot": {
+      "size": 24188234,
+      "sha256": "bc64d15c26c53644e0d66e8dd3dc9e9c52bf2d4e4267d3c9f71ee90455e567d5"
+    },
+    "stock_recovery": {
+      "size": 26518862,
+      "sha256": "4aafc56e0feb5be5213a58e9bc770730d9cf3746a9b4ee31bc79d6484af461e0"
+    },
+    "stock_system_sparse": {
+      "size": 1368173500,
+      "sha256": "03960aeded4f6b3c7802109ff74aedec67c5de15841bf175ace66a89cde36003"
+    },
+    "stock_system_raw": {
+      "size": 1744830464,
+      "sha256": "ec6edfd79adb1f6053adcc6fcb1927fabd93fe3756d9e7c7af8a7abd0dcd3e7d"
+    },
+    "development_boot_fallback": {
+      "size": 24384810,
+      "sha256": "1d3f7a3792e4eb704ee5a8f947e762d6a5b7076a2bdd3e36499188d068cc708f"
+    }
+  },
+  "evidence": {
+    "key_manifest": {
+      "size": 2508,
+      "sha256": "11e5c78f151e8d2854f810d2bb88e3739e7bbc562d9e60cc012d3a0f9b57eab6"
+    },
+    "remount_report": {
+      "size": 3990,
+      "sha256": "72235b92e23377b2d9982b178e33440355db8ca099b5458392be333481388e22"
+    },
+    "system_build_report_a": {
+      "size": 2054,
+      "sha256": "144a08e9389633b00d3b7f93fcb49571ef5d5c19aec08c4b2d262355c1b405af"
+    },
+    "system_build_report_b": {
+      "size": 2054,
+      "sha256": "144a08e9389633b00d3b7f93fcb49571ef5d5c19aec08c4b2d262355c1b405af"
+    },
+    "boot_build_report_a": {
+      "size": 2761,
+      "sha256": "d94c05ef0d8b08cc1bdc4ffec88a479b5819a5a2b199446061cbaed8d67aed3c"
+    },
+    "boot_build_report_b": {
+      "size": 2761,
+      "sha256": "d94c05ef0d8b08cc1bdc4ffec88a479b5819a5a2b199446061cbaed8d67aed3c"
+    },
+    "system_verification": {
+      "size": 2384,
+      "sha256": "b05f4f1300584b25098d4322bc66edede0653c93ef8bf7e6034c815b59e52f2a"
+    },
+    "boot_verification": {
+      "size": 1244,
+      "sha256": "0eb931ab7e0427a2f69978919ac9f3e81ab499e120494c2520b98ba6f3505f87"
+    },
+    "sparse_report": {
+      "size": 1168,
+      "sha256": "b10d4a12733858810ab4ab4add0a49bdc48bb4c01411e7cb3338f7b9d4d1b9ab"
+    },
+    "pair_fault_report": {
+      "size": 1907,
+      "sha256": "dcb639bf281f9a416b69020dfd3a18c0b952dd210abe3df14f03dd5296197675"
+    },
+    "stock_system_verification": {
+      "size": 2416,
+      "sha256": "f5a6571b4c6dde8cc381d241f380523621ab88544dad07708f29ffad7700a9d6"
+    }
+  },
+  "pair": {
+    "root_hash": "d3fa2c8d1393dabfb6ca1cf0b995bb3b93cecd884459d3f8af0a5aaf5877cd7a",
+    "salt": "aee087a5be3b982978c923f566a94613496b417f2af592639bc80d141e34dfe7",
+    "verity_tree_sha256": "487cc56fd9001937d73c41bbdd3778e19a0836fc321c62a16af8db413b72d53e",
+    "verity_metadata_sha256": "f7cdb1dd54afdf20ff29c2ddb3f29e7896440fd393fee1426ad46a8067427534",
+    "fec_sha256": "8ed22525616239a347d18c9c281e6e22c863b87dd0bd4526740dbee7f670e740",
+    "boot_signature_target": "/boot",
+    "boot_signature_algorithm": "sha256WithRSAEncryption"
+  },
+  "double_build": {
+    "system_raw_identical": true,
+    "system_sparse_identical": true,
+    "project_boot_identical": true
+  },
+  "fault_injection": {
+    "fault_count": 8,
+    "all_faults_rejected": true
+  },
+  "remaining_gates": [
+    "device identity, battery, unlock state, and partition-size read-only preflight",
+    "temporary exact-stock recovery boot and rescue-path test",
+    "separate explicit user confirmation immediately before the first system write"
+  ]
+}

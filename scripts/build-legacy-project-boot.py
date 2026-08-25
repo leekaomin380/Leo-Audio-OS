@@ -128,6 +128,61 @@ def docker_image_id(docker: str, requested: str) -> str:
     return run([docker, "image", "inspect", requested, "--format", "{{.Id}}"]).decode().strip()
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        while block := source.read(4 * 1024 * 1024):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def validate_formal_key_gate(
+    manifest_path: Path,
+    remount_report_path: Path,
+    private_key: Path,
+    verity_key: Path,
+    certificate: Path,
+    passphrase_environment: str,
+) -> dict[str, object]:
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    remount = json.loads(remount_report_path.read_text(encoding="utf-8"))
+    if manifest.get("classification") != "phase4_formal_release_keys_encrypted":
+        raise ValueError("unexpected formal key manifest classification")
+    if manifest.get("device_write_authorized") is not False:
+        raise ValueError("formal key manifest must not authorize device writes")
+    expected = manifest["files"]
+    for path in (private_key, verity_key, certificate):
+        member = expected.get(path.name)
+        if not member or path.stat().st_size != member["size"] or sha256_file(path) != member["sha256"]:
+            raise ValueError(f"formal key member differs from manifest: {path}")
+    identity = manifest["public_identity"]
+    if sha256_file(verity_key) != identity["verity_mincrypt_sha256"]:
+        raise ValueError("formal verity public identity mismatch")
+    if sha256_file(certificate) != identity["boot_certificate_der_sha256"]:
+        raise ValueError("formal boot certificate identity mismatch")
+    if remount.get("classification") != "phase4_release_key_remount_verification":
+        raise ValueError("unexpected release-key remount report classification")
+    if remount.get("key_manifest_sha256") != sha256_file(manifest_path):
+        raise ValueError("remount report is not bound to this key manifest")
+    if not all((
+        remount.get("independent_physical_disks"),
+        remount.get("all_expected_members_match"),
+        remount.get("remount_readback_verified"),
+        remount.get("keychain_decrypt_verified", {}).get("verity"),
+        remount.get("keychain_decrypt_verified", {}).get("boot"),
+    )):
+        raise ValueError("formal release-key remount gate is incomplete")
+    if remount.get("device_write_authorized") is not False:
+        raise ValueError("remount report must not authorize device writes")
+    if not passphrase_environment or not os.environ.get(passphrase_environment):
+        raise ValueError("formal signing passphrase environment is absent")
+    return {
+        "key_ids": manifest["key_ids"],
+        "key_manifest_sha256": sha256_file(manifest_path),
+        "remount_report_sha256": sha256_file(remount_report_path),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--stock-boot", required=True, type=Path)
@@ -137,7 +192,12 @@ def main() -> int:
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--expected-stock-sha256", required=True)
     parser.add_argument("--builder-image", default=DEFAULT_BUILDER)
-    parser.add_argument("--development-probe", action="store_true", required=True)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--development-probe", action="store_true")
+    mode.add_argument("--formal-release", action="store_true")
+    parser.add_argument("--key-manifest", type=Path)
+    parser.add_argument("--remount-report", type=Path)
+    parser.add_argument("--private-key-passphrase-env")
     args = parser.parse_args()
 
     stock_path = args.stock_boot.resolve()
@@ -150,6 +210,19 @@ def main() -> int:
     replacement_key = verity_key_path.read_bytes()
     if len(replacement_key) != 524:
         parser.error(f"verity_key must be exactly 524 bytes, found {len(replacement_key)}")
+    formal_gate: dict[str, object] | None = None
+    if args.formal_release:
+        if not args.key_manifest or not args.remount_report or not args.private_key_passphrase_env:
+            parser.error("formal release requires key manifest, remount report, and passphrase environment")
+        try:
+            formal_gate = validate_formal_key_gate(
+                args.key_manifest.resolve(), args.remount_report.resolve(), private_key_path,
+                verity_key_path, certificate_path, args.private_key_passphrase_env,
+            )
+        except (OSError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
+            parser.error(str(error))
+    elif args.key_manifest or args.remount_report or args.private_key_passphrase_env:
+        parser.error("formal key gate options are forbidden in development-probe mode")
 
     output = args.output.resolve()
     output.mkdir(parents=True, exist_ok=True)
@@ -223,10 +296,13 @@ def main() -> int:
         signed_data_path = output / "boot.signed-data.bin"
         signature_path = output / "boot.signature.bin"
         signed_data_path.write_bytes(signable + attributes)
-        run([
+        sign_command = [
             openssl, "dgst", "-sha256", "-sign", str(private_key_path),
-            "-out", str(signature_path), str(signed_data_path),
-        ])
+        ]
+        if args.formal_release:
+            sign_command += ["-passin", f"env:{args.private_key_passphrase_env}"]
+        sign_command += ["-out", str(signature_path), str(signed_data_path)]
+        run(sign_command)
         signature = signature_path.read_bytes()
         if len(signature) != 256:
             raise ValueError(f"unexpected RSA-2048 signature size: {len(signature)}")
@@ -236,7 +312,9 @@ def main() -> int:
             der_integer(1), certificate_der, algorithm, attributes, der(0x04, signature)
         )
         project_boot = signable + footer
-        project_boot_path = output / "boot-project-probe.img"
+        project_boot_path = output / (
+            "boot-project-release.img" if args.formal_release else "boot-project-probe.img"
+        )
         project_boot_path.write_bytes(project_boot)
 
         verifier_path = Path(__file__).with_name("inspect-legacy-boot-signature.py")
@@ -256,8 +334,12 @@ def main() -> int:
             raise ValueError("project verity_key unexpectedly matches stock")
         report = {
             "schema": 1,
-            "classification": "development-probe-not-for-device-release",
+            "classification": (
+                "phase4-formal-release-candidate-boot"
+                if args.formal_release else "development-probe-not-for-device-release"
+            ),
             "device_write_authorized": False,
+            "formal_key_gate": formal_gate,
             "builder_image_requested": requested_image,
             "builder_image_id": actual_image,
             "stock": {

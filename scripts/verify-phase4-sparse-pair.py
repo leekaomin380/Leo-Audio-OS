@@ -68,6 +68,7 @@ def main() -> int:
     parser.add_argument("--expected-raw-sha256", required=True)
     parser.add_argument("--img2simg", default="img2simg")
     parser.add_argument("--simg2img", default="simg2img")
+    parser.add_argument("--formal-release", action="store_true")
     args = parser.parse_args()
 
     raw_a = args.raw_a.resolve()
@@ -121,7 +122,10 @@ def main() -> int:
 
     report = {
         "schema": 1,
-        "classification": "phase4-development-pair-sparse-roundtrip",
+        "classification": (
+            "phase4-formal-release-sparse-roundtrip"
+            if args.formal_release else "phase4-development-pair-sparse-roundtrip"
+        ),
         "device_interface_available": False,
         "raw": {"size": PARTITION_SIZE, "sha256": expected, "pair_identical": True},
         "sparse": {

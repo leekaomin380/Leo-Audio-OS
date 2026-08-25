@@ -165,6 +165,13 @@ staging，禁止调用 ADB、fastboot 或任何设备写入接口。
 - `verify-phase4-release-set.py` 与 `fault-inject-phase4-release-set.py`：把 system、boot、公钥、证书、
   stock recovery 和 fallback 绑定成不可混配 tuple，并验证缺文件、换 boot、错 key/cert 与 hash
   mismatch 均被拒绝。verifier 永不代表用户授权写入。
+- `generate-phase4-release-keys.py`：在两块独立外置物理介质上建立正式、分域且加密的 verity/boot
+  密钥副本；口令只进入 macOS 登录钥匙串，脚本拒绝覆盖既有备份成员；
+- `verify-phase4-release-key-backups.py`：在两块介质分别断开重连后，只读核验卷 UUID、物理盘独立性、
+  manifest 全成员 hash 与钥匙串解密恢复，并产生不含口令和私钥内容的本地证据；
+- 两个 legacy builder 的 `--formal-release` 模式必须同时验证正式 key manifest、重挂载报告和仅由
+  环境变量传入的解密口令；缺任一门禁即在创建输出前失败。正式 builder 与总 verifier 仍固定输出
+  `device_write_authorized=false`，不能替代用户临写确认。
 
 上述工具均不挂载镜像，也不含 ADB/fastboot 调用。公开 profile 固定 AOSP
 `android-7.0.0_r1` 源码提交和文件 hash；probe 私钥与所有构建镜像均在 Git 忽略区。

@@ -5,6 +5,11 @@
 本路书定义未来动作顺序，不授权当前设备写入。development pair 使用一次性测试密钥，任何
 verifier 通过都不能替代用户在破坏性动作前的明确确认。
 
+截至 2026-08-26，正式 `leo-phase4-release-set-v1` 已完成双密钥、双介质重挂载、system/boot/
+sparse 双构建、原厂 system sparse→raw 回滚闭环，以及 8 项内容故障与 7 项 tuple 混配故障测试。
+正式 manifest 仍固定 `device_write_authorized=false`、`allowed_partitions=[]`；离线技术门通过不改变
+第 3–5 节的设备预检、救援路径实测和临写确认要求。
+
 ## 2. 写入前必须全部闭合
 
 - 正式 `leo-verity-v1` 与 `leo-boot-v1` 已完成分域密钥仪式；
