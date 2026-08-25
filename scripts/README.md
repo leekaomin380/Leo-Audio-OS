@@ -121,6 +121,9 @@ python3 scripts/verify-audio-classification.py
   `development-unverified` raw ext4 候选；通过 builder 内受限 libext2fs helper 精确建立
   6552-block internal journal；不生成 sparse、不调用设备接口；
 - `normalize-gate2-ext4.sh`：对候选 raw ext4 执行已验证的 post-build 归一化并运行 `e2fsck`。
+- `build-gate2-development-container.py`：将已验证 Gate 2 raw ext4 置于精确 system 分区
+  起点、物化零填充的开发态尾部，再执行 `raw → Android sparse → raw` 全字节回环验证；明确
+  不读取或复用原厂 dm-verity/FEC 尾部，也不调用设备接口。
 
 `tools/gate2-builder/` 是锁定的 Linux 构建器定义。Gate 2 的所有脚本只处理私有镜像和
 staging，禁止调用 ADB、fastboot 或任何设备写入接口。

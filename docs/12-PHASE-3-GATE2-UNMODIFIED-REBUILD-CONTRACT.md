@@ -226,8 +226,16 @@ inode 号、data block 位置、journal sequence、free-space 布局和 sparse c
 - 当前空间不足以保留两份候选和一份源 raw，同时保留安全余量；
 - 任何步骤试图连接或写入手机。
 
-## 12. 下一执行档
+## 12. Gate 2 容器执行记录
 
-本契约锁定后，下一板块是机械实现：固定 builder 容器、生成 staging/metadata 输入、做两次
-本机构建和语义比较。该板块适合 Terra medium；只有遇到 feature、SELinux、verity、fsck
-或不可解释的二进制非确定性时再切回 Sol high。
+已通过 `build-gate2-development-container.py` 执行一次开发态容器回环：该脚本先物化完整
+425984-block raw 分区，再写入已验证 ext4 前缀，显式验证 6655-block 尾部的零哈希，之后调用
+`img2simg` 与 `simg2img`。输出 sparse header 为 Android v1/4096-byte blocks/425984 blocks；
+回展开 raw 与输入 partition raw 的 SHA-256 和逐字节比较均相同。私有报告保存每个输入/输出的
+SHA-256 与几何；脚本不接受非空输出目录，避免覆写既有候选。
+
+## 13. 下一执行档
+
+Gate 2 的机械重建和容器回环已完成。下一板块是 Gate 2 evidence freeze，以及 Gate 3 最小
+有意修改的独立契约和静态差异设计。证据整理与脚本回归适合 Terra medium；只有遇到 feature、
+SELinux、verity、fsck 或不可解释的二进制非确定性时再切回 Sol high。
