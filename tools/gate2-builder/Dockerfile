@@ -23,6 +23,7 @@ RUN git clone https://android.googlesource.com/platform/external/e2fsprogs /src/
     && make install
 
 COPY compat /opt/leo-e2fsdroid-compat
+COPY create-leo-journal.c /opt/leo-e2fsdroid-compat/create-leo-journal.c
 
 RUN gcc \
         -I/src/e2fsprogs \
@@ -47,5 +48,15 @@ RUN gcc \
         -Wl,-rpath,/opt/e2fsprogs/lib:/usr/lib/aarch64-linux-gnu/android \
         -lext2fs -le2p -lcom_err -lsparse -lcutils -lselinux -lcrypto -lz -luuid -lblkid \
     && test -x /usr/local/bin/e2fsdroid
+
+RUN gcc \
+        -I/src/e2fsprogs/lib \
+        -I/opt/e2fsprogs/include \
+        -o /usr/local/bin/create-leo-journal \
+        /opt/leo-e2fsdroid-compat/create-leo-journal.c \
+        -L/opt/e2fsprogs/lib \
+        -Wl,-rpath,/opt/e2fsprogs/lib \
+        -lext2fs -lcom_err -luuid -lblkid \
+    && test -x /usr/local/bin/create-leo-journal
 
 ENTRYPOINT ["/bin/sh"]

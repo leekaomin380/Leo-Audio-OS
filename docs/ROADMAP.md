@@ -34,7 +34,7 @@
 - [x] 接受用户提供的精确官方 ROM 并严格校验；
 - [x] 证明 sparse/raw 容器往返与原厂 ext4 双证据语义基线；
 - [x] 锁定无修改重建的 builder、Android metadata 与 verified-boot 架构；
-- [ ] 完成两次本地无修改重建、语义同一性与 `e2fsck = 0`；
+- [x] 完成两次本地无修改 ext4 重建、语义同一性、journal 对齐与 `e2fsck = 0`；
 - [ ] 解包、精简并重建只读 system 镜像；
 - [ ] 集成 Shell、维护组件和保守性能策略；
 - [ ] 不重新分发 Xiaomi、Google 或 Spotify 文件；

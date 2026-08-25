@@ -92,8 +92,8 @@ hash tree。
 - 不得出现 `64bit`、`metadata_csum`、`flex_bg`、`huge_file`、`dir_index` 或其他原厂没有的
   feature；
 - errors behavior、inode/group geometry、journal 大小和 reserved GDT 必须记录并比较；候选以
-  `resize=432046080` 固定 103 个 reserved GDT blocks；上述
-  原厂值是优先目标，不能精确复现的物理参数要在候选 profile 中固定并由高智能档单项裁定；
+  `resize=432046080` 固定 103 个 reserved GDT blocks；先以 `^has_journal` 建立空文件系统，
+  再由同一 pinned `libext2fs` 的受限 helper 精确建立 6552-block internal journal；
 - root 与 `/lost+found` mtime 为 epoch 0，其余 3921 条路径为 1230739200；
 - 两次独立构建必须先做到语义清单逐项相同；目标是 raw ext4 也逐字节相同。若 raw hash
   不同，必须找出时间、UUID、hash seed、journal 或 allocation 的非确定性来源，不能直接
@@ -111,6 +111,12 @@ epoch 0，其余普通目录项按清单设为 1230739200；`e2fsdroid` 从 stag
 `debugfs` 后处理，把 `/lost+found` 的 atime/ctime/mtime 置为 0、缩小这个空目录至原厂的 4096
 bytes，并把 superblock 的 `min_extra_isize`/`want_extra_isize` 置为原厂的 28。这个归一化步骤已在
 最小镜像和完整候选上经 `e2fsck -f -n` 验证，不能省略，也不能用 2009 静默替代 epoch 0。
+
+journal helper 必须拒绝已有 journal、非空 inode 8 和非 6552 参数。它通过
+`ext2fs_add_journal_inode()` 建立自洽的 inode、JBD2 superblock、backup 与 feature bit；随后把
+原厂 internal journal 中为全零的 JBD2 UUID 归一化，并由后处理把 inode 8 的时间和 extra-isize
+归一为原厂值。最小探针及两份完整候选均已证明：JBD2 superblock 与原厂逐字节相同，raw ext4
+两次构建逐字节相同，且 `e2fsck -f -n = 0`。
 
 ## 6. 内容 staging 契约
 

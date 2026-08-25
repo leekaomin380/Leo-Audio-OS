@@ -4,11 +4,11 @@
 
 ## 当前结论
 
-Gate 2 的 raw ext4 重建器已达到“语义等价、文件系统干净、构建字节可复现”的阶段，但尚未
-完成 Gate 2，也没有生成 sparse 容器或获得任何设备写入授权。
+Gate 2 的 raw ext4 重建器已达到“语义等价、文件系统干净、构建字节可复现、journal 对齐”
+的阶段。Gate 2 尚未完成，因为 sparse 外层容器及其回环尚未生成；也没有任何设备写入授权。
 
-私有候选 `candidate-ext4-v2` 与 `candidate-ext4-v3` 使用同一锁定 builder、同一 staging、
-同一 metadata 和同一 profile 构建。最终 raw SHA-256 完全相同。两份候选分别与 Gate 1
+journal 裁定后的私有候选 `candidate-ext4-v4` 与 `candidate-ext4-v5` 使用同一锁定 builder、
+同一 staging、同一 metadata 和同一 profile 构建。最终 raw SHA-256 完全相同。两份候选分别与 Gate 1
 原厂语义清单做 canonical-byte-equality 比较，均通过。
 
 ## 已通过的硬证据
@@ -20,13 +20,19 @@ Gate 2 的 raw ext4 重建器已达到“语义等价、文件系统干净、构
 - block size、block count、inode count、inode size、blocks/inodes per group、reserved block
   count、label、UUID、默认 mount options、TEA directory hash、reserved GDT 103 均对齐；
 - `/lost+found` 的类型、owner、mode、4096-byte size 与 epoch 0 时间已对齐；
+- journal inode 为原厂的 6552 blocks；JBD2 superblock 与原厂 4096 bytes 逐字节相同；
 - 两次完整候选 raw ext4 字节哈希相同。
 
-## 已知但未裁定的物理差异
+## Journal 裁定
 
-现代 `mke2fs 1.46.6` 的 `-J size=25` 固定生成 6400 journal blocks；原厂 Android 7
-构建器的 journal inode 为 6552 blocks。两者均显示为 25M，且候选文件系统检查、旧 feature
-set 与全部系统语义均通过。这个差异不能以“语义相同”掩盖：后续须单独评估是否安全地重建
-6552-block journal，或把它登记为有边界的、已解释的物理差异。
+现代 `mke2fs 1.46.6` 的 CLI 只接受 MiB journal size，`-J size=25` 因而生成 6400 blocks；
+这不是 ext4/JBD2 限制。锁定的同源 `libext2fs` 提供 `ext2fs_add_journal_inode()`，可直接接收
+精确 block 数。项目专用 helper 只接受 6552，要求输入尚无 journal，并通过正式 libext2fs
+API 建立 inode 8、更新 superblock backup 和 `has_journal` feature。
 
-在该裁定前，不进入 sparse 打包、dm-verity/FEC、fastboot/recovery 或设备测试步骤。
+小型探针和两份完整候选均证明：journal inode size/blockcount 与原厂一致，JBD2 superblock
+逐字节一致，候选 feature set 不变，`e2fsck -f -n` 为 0，系统语义清单仍与原厂逐字节相同，
+两次 raw ext4 也逐字节相同。journal 差异据此关闭，不再作为停止条件。
+
+下一步只允许生成开发态零填充 partition raw 和 sparse 容器并做回环；仍不进入 dm-verity/FEC、
+fastboot/recovery 或设备测试步骤。

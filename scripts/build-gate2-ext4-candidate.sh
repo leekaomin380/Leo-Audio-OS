@@ -40,10 +40,12 @@ docker run --rm --network none --entrypoint /bin/sh \
   "$builder_image" -lc '
     set -eu
     export MKE2FS_CONFIG=/input/mke2fs.conf
-    /opt/e2fsprogs/sbin/mke2fs -F -t ext4 -b 4096 -I 256 -N 104832 -g 32768 -m 0 \
-      -U da594c53-9beb-f85c-85c5-cedf76546f7a -L system -J size=25 \
+    /opt/e2fsprogs/sbin/mke2fs -F -t ext4 -O ^has_journal -b 4096 -I 256 -N 104832 -g 32768 -m 0 \
+      -U da594c53-9beb-f85c-85c5-cedf76546f7a -L system \
       -E hash_seed=da594c53-9beb-f85c-85c5-cedf76546f7a,resize=432046080 \
       /output/system.ext4.raw 419329 > /output/mke2fs.txt 2>&1
+    create-leo-journal /output/system.ext4.raw 6552 > /output/create-journal.txt 2>&1
+    grep -qx "journal_blocks=6552" /output/create-journal.txt
     e2fsdroid -e -f /staging -a /system -C /metadata/fs_config.canned \
       -S /metadata/file_contexts.closed-world /output/system.ext4.raw \
       > /output/e2fsdroid.txt 2>&1

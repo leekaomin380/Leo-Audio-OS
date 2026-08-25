@@ -41,6 +41,11 @@ docker run --rm --network none --read-only --entrypoint /bin/sh \
     for command in \
       "set_super_value min_extra_isize 28" \
       "set_super_value want_extra_isize 28" \
+      "set_inode_field <8> atime 0" \
+      "set_inode_field <8> ctime 0" \
+      "set_inode_field <8> mtime 0" \
+      "set_inode_field <8> crtime 0" \
+      "set_inode_field <8> extra_isize 0" \
       "punch /lost+found 1" \
       "set_inode_field <11> size 4096" \
       "set_inode_field <11> atime 0" \
@@ -58,12 +63,17 @@ docker run --rm --network none --read-only --entrypoint /bin/sh \
     dd if=/dev/zero of="$image" bs=1 seek=1260 count=16 conv=notrunc status=none
     dd if=/dev/zero of="$image" bs=1 seek=1288 count=4 conv=notrunc status=none
     /opt/e2fsprogs/sbin/dumpe2fs -h "$image" > /report/superblock.txt 2>&1
+    /opt/e2fsprogs/sbin/debugfs -R "stat <8>" "$image" > /report/journal-inode.txt 2>&1
     /opt/e2fsprogs/sbin/debugfs -R "stat <11>" "$image" > /report/lost-found.txt 2>&1
     /opt/e2fsprogs/sbin/e2fsck -f -n "$image" > /report/e2fsck.txt 2>&1
   '
 
 rg -q 'Required extra isize:[[:space:]]+28' "$report_dir/superblock.txt"
 rg -q 'Desired extra isize:[[:space:]]+28' "$report_dir/superblock.txt"
+rg -q 'Total journal blocks:[[:space:]]+6552' "$report_dir/superblock.txt"
+rg -q 'Size:[[:space:]]+26836992' "$report_dir/journal-inode.txt"
+rg -q 'Size of extra inode fields:[[:space:]]+0' "$report_dir/journal-inode.txt"
+rg -q 'mtime: 0x00000000' "$report_dir/journal-inode.txt"
 rg -q 'Size:[[:space:]]+4096' "$report_dir/lost-found.txt"
 rg -q 'Last write time:[[:space:]]+Thu Jan  1 00:00:00 1970' "$report_dir/superblock.txt"
 rg -q 'Last checked:[[:space:]]+Thu Jan  1 00:00:00 1970' "$report_dir/superblock.txt"
