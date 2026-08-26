@@ -1,5 +1,9 @@
 # 15：Phase 4 首次受控写入路书
 
+> 执行状态：本路书于 2026-08-26 在一台参考设备上按两次独立用户确认完成。公开 manifest
+> 继续保持 `device_write_authorized=false`；一次交互式授权不被固化为未来授权。实机证据、偏差与
+> 剩余风险见[首次受控写入与持久启动验收](reviews/2026-08-26-phase4-first-controlled-write.md)。
+
 ## 1. 当前裁决
 
 本路书定义未来动作顺序，不授权当前设备写入。development pair 使用一次性测试密钥，任何

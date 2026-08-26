@@ -48,9 +48,11 @@
 - [x] 固定 Android 7 legacy verified-boot 源码版本、system/boot 配对契约和首次写入安全顺序；
 - [x] 逐字节复现原厂 verity tree/FEC，并双构建 development system/boot/sparse 配对；
 - [x] 完成项目配对与 release-set 的故障注入和 fail-closed 校验；
-- [ ] 建立项目 release keys 与离线保管规则；
-- [ ] 用正式密钥重建并冻结首个 release-set；
-- [ ] 构建并临时启动 recovery，实测 USB-OTG、ADB、备份与恢复；
+- [x] 建立项目 release keys 与双介质离线保管、断开重连回读规则；
+- [x] 用正式密钥重建并冻结首个 release-set；
+- [x] 实测 stock recovery/fastboot 救援入口、ADB sideload 与双介质当前 system 备份；
+- [x] 在参考设备完成正式 system/boot 首次受控写入、持久启动与 Spotify/HiFi 验收；
+- [ ] 实测 USB-OTG 与完整 boot/system 回滚；
 - [ ] 实现启动计数、安全模式和 recovery 入口；
 - [ ] 生成签名的完整与增量更新；
 - [ ] 在第二台测试设备上完成破坏性故障演练。

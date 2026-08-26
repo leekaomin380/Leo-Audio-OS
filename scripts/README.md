@@ -172,9 +172,13 @@ staging，禁止调用 ADB、fastboot 或任何设备写入接口。
 - 两个 legacy builder 的 `--formal-release` 模式必须同时验证正式 key manifest、重挂载报告和仅由
   环境变量传入的解密口令；缺任一门禁即在创建输出前失败。正式 builder 与总 verifier 仍固定输出
   `device_write_authorized=false`，不能替代用户临写确认。
+- `backup-phase4-current-system.py`：在首次写入前，从唯一一台已授权、已启动且可获得 Root 的
+  `leo` 只读流出完整 system block device；一次流同时写入两块 UUID 锁定且物理独立的外置介质，
+  fsync 后再分别完整读回并核对预期大小与 SHA-256。脚本拒绝覆盖既有目录，不向手机写入，也不把
+  ADB 枚举序列号写入 manifest。失败的 partial 文件保留供人工审计。
 
-上述工具均不挂载镜像，也不含 ADB/fastboot 调用。公开 profile 固定 AOSP
-`android-7.0.0_r1` 源码提交和文件 hash；probe 私钥与所有构建镜像均在 Git 忽略区。
+除明确标注的只读设备备份脚本外，上述构建与校验工具均不含 ADB/fastboot 调用。公开 profile 固定
+AOSP `android-7.0.0_r1` 源码提交和文件 hash；probe 私钥与所有构建镜像均在 Git 忽略区。
 
 ## 当前工具
 

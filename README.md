@@ -14,16 +14,18 @@ Leo Audio OS 是一个面向 Xiaomi Mi Note Pro（代号 `leo`）的长期开放
 ## 当前状态
 
 项目已经完成 **Phase 1：音频依赖闭包 v0.2**，冻结了 **Phase 2：播放器 Shell 原型
-v0.2.7 基线**，完成 **Phase 3 Gate 3：最小 Leo Shell system 集成的本机静态门禁**，并完成
-**Phase 4 Gate 2：development system/boot 配对的离线闭环**。尚未刷写项目系统镜像。
+v0.2.7 基线**，完成 **Phase 3 Gate 3：最小 Leo Shell system 集成的本机静态门禁**，并在一台
+参考设备上完成 **Phase 4：正式 system/boot 配对的首次受控写入与持久启动验收**。
 
-- 还没有可供刷入的 Leo Audio OS 固件；
-- 当前实机仍运行已验证的 MIUI 9 HiFi 播放器方案；
-- 当前 MIUI 上的 Leo HOME Shell v0.2.7 已完成可逆安装验证；
-- 已独立验证原厂 Merkle tree、metadata RSA signature、FEC 与 boot/recovery BootSignature；
-- 锁定工具链已逐字节复现原厂 tree/FEC，并双构建出可重复的 development system/boot 配对；
-- development pair 使用一次性测试密钥，manifest 明确拒绝设备写入；
-- 不应根据本仓库当前内容执行分区写入；
+- 参考设备现运行基于 MIUI 9.2.3.0 的第一代 Leo Audio OS 原型；这不是第二代源码 ROM；
+- 正式 system 以只读 dm-verity 挂载，正式 project boot 已持久写入；
+- Leo Shell 已成为默认 HOME，Spotify 登录、外放、有线耳机和原厂 HiFi 路径通过实测；
+- userdata、recovery、persist、modem、Bootloader 等未被本次写入；
+- 写入前的当前 system 已在两块独立外置介质完成全量哈希回读，exact stock boot/system/recovery
+  仍作为回滚材料保留；
+- 还没有可公开下载的 Leo Audio OS 固件；正式镜像与专有输入不进入 Git；
+- 单台参考机成功不等于发布成熟：实际回滚、USB-OTG、重复冷启动、长时功耗和第二台设备故障演练
+  仍未闭合；
 - 原厂音频运行路径、HAL/ELF、stock boot/DTB、首批内核配置和 SELinux 有效授权
   闭包已经建立；最终最小保留集仍待功能与故障测试证明。
 
@@ -65,6 +67,7 @@ v0.2.7 基线**，完成 **Phase 3 Gate 3：最小 Leo Shell system 集成的本
 - [Phase 4 Gate 0 verified-boot 审计](docs/reviews/2026-08-25-phase4-gate0-verified-boot-audit.md)
 - [Phase 4 Gate 1/2 离线构建审计](docs/reviews/2026-08-25-phase4-gate1-gate2-offline-pair.md)
 - [Phase 4 首次受控写入路书](docs/15-PHASE-4-FIRST-WRITE-RUNBOOK.md)
+- [Phase 4 首次受控写入与持久启动验收](docs/reviews/2026-08-26-phase4-first-controlled-write.md)
 - [Phase 3 Gate 0 评审](docs/reviews/2026-08-24-phase3-gate0.md)
 - [产品愿景与命名](docs/VISION.md)
 - [初始系统架构](docs/ARCHITECTURE.md)
