@@ -69,6 +69,7 @@
 - [x] 建立全局路书、证据门、智能等级与五小时窗口执行协议；
 - [x] 锁定并验证一个 `leo` MoKee Android 10 ROM；
 - [x] 完成 ROM 启动链、分区、音频栈、组件和 SELinux 静态审计；
+- [x] 双重重建并回环验证未经修改的 M2 system/boot 离线候选，冻结实机写入路书；
 - [ ] 在回滚闭合并取得临场授权后验证未经修改的 MoKee 实机基准；
 - [ ] 差量恢复 ESS9018、Forte ACDB 和 QUAT MI2S 音频等价性。
 - [ ] 在 HAL 建立可读回验证的 Leo HiFi Controller，并向 Leo Home 提供只读状态显示。

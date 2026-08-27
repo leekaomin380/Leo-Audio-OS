@@ -108,6 +108,11 @@ M1 不制造可刷候选，按需提取：
 M1 通过、回滚材料双份可读、救援入口实测并获临场确认之前停止。第一台候选必须是未经音频覆盖、
 未经删包的锁定 MoKee，以分离社区 bring-up 与本项目改造。
 
+2026-08-27 已完成原版 system 的两次独立重建、sparse 双构建和 raw 回环，并将确切候选、设备门、
+两次临场确认与回滚顺序冻结在
+[`18：Phase 5B M2 原版 MoKee 实机基准路书`](18-PHASE-5B-M2-UNMODIFIED-MOKEE-BASELINE-RUNBOOK.md)。
+这只闭合离线候选门；设备未连接和第二份回滚介质未在线时，仍不得进入写入动作。
+
 验收包括冷启动、显示/触摸/Wi-Fi、外放、耳机、Spotify 播放/下载/息屏、温度、deep sleep、
 crash/denial 和 recovery/fastboot。音频采集 AudioFlinger、AudioPolicy、mixer、kernel、属性与
 设备节点证据。

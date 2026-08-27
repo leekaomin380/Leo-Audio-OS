@@ -1,0 +1,75 @@
+{
+  "schema": 1,
+  "candidate_id": "leo-mokee-m2-unmodified-baseline-v0.1",
+  "classification": "unmodified_mokee_baseline_private_candidate",
+  "device": {
+    "vendor": "Xiaomi",
+    "product": "Mi Note Pro",
+    "codename": "leo",
+    "required_trustzone": "TZ.BF.3.0.R1-00226"
+  },
+  "source": {
+    "filename": "MK100.0-leo-221019-RELEASE.zip",
+    "size": 647032071,
+    "md5": "1e4026ea6788f9e8adc8419602d11e46",
+    "sha256": "e1d32441513d49108802cc426b0891f7c3be577f2cb41d4030b4fe2ddf614390",
+    "zip_test_passed": true
+  },
+  "artifacts": {
+    "system_raw": {
+      "size": 1744830464,
+      "sha256": "7238ee916246f6ac4564d7386639494323bae01b67eb8bed6b0168b2d47689c3",
+      "independent_reconstructions_identical": true,
+      "e2fsck_read_only_passed": true
+    },
+    "system_sparse": {
+      "size": 1564010920,
+      "sha256": "695eba5e3e1b1469f3fe2feeb299934f94d6b9e53e82d13717df324e20bffe7b",
+      "double_build_identical": true,
+      "raw_roundtrip_identical": true,
+      "block_size": 4096,
+      "total_blocks": 425984
+    },
+    "boot": {
+      "size": 23928832,
+      "sha256": "9470dd6a01120480289c17d0da161e73b2eb6361ece3ea72041b07da088934af",
+      "matches_zip_member": true
+    }
+  },
+  "planned_write_scope": [
+    "system",
+    "boot"
+  ],
+  "planned_data_action": "clean data is required for the Android 7 to Android 10 baseline transition; exact method requires a separate live confirmation",
+  "forbidden_partitions": [
+    "recovery",
+    "persist",
+    "modem",
+    "tz",
+    "aboot",
+    "sbl1",
+    "rpm"
+  ],
+  "rollback": {
+    "phase4_system_sparse_sha256": "afa12b23e4570f96cc5e4ee70cf754779c75cf834a9d61f481f08d1a96e21eb1",
+    "phase4_project_boot_sha256": "dfca241d75d494e0d85502d1368a3475f0e2576dd69b28274fcf4532a2779685",
+    "stock_system_sparse_sha256": "03960aeded4f6b3c7802109ff74aedec67c5de15841bf175ace66a89cde36003",
+    "stock_boot_sha256": "bc64d15c26c53644e0d66e8dd3dc9e9c52bf2d4e4267d3c9f71ee90455e567d5",
+    "stock_recovery_sha256": "4aafc56e0feb5be5213a58e9bc770730d9cf3746a9b4ee31bc79d6484af461e0"
+  },
+  "offline_gate": {
+    "passed": true,
+    "device_interface_used": false,
+    "device_write_ready": false,
+    "remaining": [
+      "connect and identify the exact device",
+      "verify unlock, battery, USB stability, partition geometry and required trustzone",
+      "make a second rollback copy physically available and verify readback",
+      "test recovery and fastboot rescue navigation",
+      "export the currently installed Spotify APK split set if desired",
+      "obtain explicit confirmation immediately before data wipe and system write"
+    ]
+  },
+  "device_write_authorized": false,
+  "allowed_partitions": []
+}
