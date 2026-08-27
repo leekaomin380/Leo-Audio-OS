@@ -121,10 +121,16 @@ crash/denial 和 recovery/fastboot。音频采集 AudioFlinger、AudioPolicy、m
 3. 差量引入 I2S mixer/platform 配置；
 4. 对齐 Forte ACDB、ACDB loader 和 ADSP；
 5. 对齐 init、属性、设备权限和 SELinux；
-6. 固定曲目进行 MIUI/MoKee 路由、稳定性、温度和主观对照。
+6. 在 HAL 内实现 Leo HiFi Controller：控制 ESS/QUAT 状态，并以读回证据进入 `HIFI_ACTIVE`；
+7. 先以结构化 `dumpsys`/日志验证状态机，再发布只读状态服务给 Leo Home 与维护页；
+8. 固定曲目进行 MIUI/MoKee 路由、稳定性、温度和主观对照。
 
 禁止把 Android 7 的 `audioserver` 或 framework 库整体覆盖到 Android 10。任何 HAL 先通过 ELF、
 依赖、符号、位数、命名空间和 SELinux 审计。
+
+状态机、证据门、权限边界与界面要求由
+[`17：Leo HiFi 控制与状态显示契约`](17-LEO-AUDIO-STATE-CONTRACT.md) 固定。普通 UI 不得直接
+写 mixer、sysfs、DAC I2C 或 property；耳机有声不是 `HIFI_ACTIVE` 的充分证据。
 
 ## 10. Gate M4：源码白名单最小化
 

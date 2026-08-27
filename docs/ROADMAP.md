@@ -71,6 +71,7 @@
 - [x] 完成 ROM 启动链、分区、音频栈、组件和 SELinux 静态审计；
 - [ ] 在回滚闭合并取得临场授权后验证未经修改的 MoKee 实机基准；
 - [ ] 差量恢复 ESS9018、Forte ACDB 和 QUAT MI2S 音频等价性。
+- [ ] 在 HAL 建立可读回验证的 Leo HiFi Controller，并向 Leo Home 提供只读状态显示。
 
 ## Phase 5C — `leo_audio` 源码产品
 
