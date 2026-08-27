@@ -68,6 +68,8 @@ v0.2.7 基线**，完成 **Phase 3 Gate 3：最小 Leo Shell system 集成的本
 - [Phase 4 Gate 1/2 离线构建审计](docs/reviews/2026-08-25-phase4-gate1-gate2-offline-pair.md)
 - [Phase 4 首次受控写入路书](docs/15-PHASE-4-FIRST-WRITE-RUNBOOK.md)
 - [Phase 4 首次受控写入与持久启动验收](docs/reviews/2026-08-26-phase4-first-controlled-write.md)
+- [16：Phase 5B MoKee 兼容性桥梁全局路书](docs/16-PHASE-5B-MOKEE-COMPATIBILITY-BRIDGE-RUNBOOK.md)
+- [2026-08-26：Phase 5B MoKee 全量工程交接](docs/HANDOFF-2026-08-26-PHASE-5B-MOKEE.md)
 - [Phase 3 Gate 0 评审](docs/reviews/2026-08-24-phase3-gate0.md)
 - [产品愿景与命名](docs/VISION.md)
 - [初始系统架构](docs/ARCHITECTURE.md)

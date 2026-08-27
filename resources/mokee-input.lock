@@ -1,0 +1,7 @@
+# id|authority|status|url|filename|size_bytes|published_utc|expected_md5|local_sha256|purpose
+mokee-leo-mk100-release|mokee-sourceforge|verified|https://sourceforge.net/projects/mokee/files/RELEASE/leo/MK100.0-leo-221019-RELEASE.zip/download|MK100.0-leo-221019-RELEASE.zip|647032071|2022-10-22T12:38:21Z|1e4026ea6788f9e8adc8419602d11e46|e1d32441513d49108802cc426b0891f7c3be577f2cb41d4030b4fe2ddf614390|Phase 5B unmodified MoKee Android 10 reference ROM
+
+# Evidence
+# Release directory: https://sourceforge.net/projects/mokee/files/RELEASE/leo/
+# Publisher checksum: https://sourceforge.net/projects/mokee/files/RELEASE/leo/md5/MK100.0-leo-221019-RELEASE.zip.md5sum/download
+# The ROM binary is private input and must remain under resources/private/.

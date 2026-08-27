@@ -57,11 +57,27 @@
 - [ ] 生成签名的完整与增量更新；
 - [ ] 在第二台测试设备上完成破坏性故障演练。
 
-## Phase 5 — 源码系统 Bring-up
+## Phase 5A — MIUI 黄金参照
+
+- [x] 保留 Phase 4 已验收的 MIUI 衍生系统作为声音、路由、功耗和恢复参照；
+- [x] 冻结原厂音频闭包、boot/DTB、SELinux、运行时路径和回滚材料；
+- [ ] 完成 USB-OTG 回滚与长时功耗补充验收。
+
+## Phase 5B — MoKee Compatibility Bridge
+
+- [x] 确立“原版基准 → 音频等价 → 最小化”的中间路线；
+- [x] 建立全局路书、证据门、智能等级与五小时窗口执行协议；
+- [x] 锁定并验证一个 `leo` MoKee Android 10 ROM；
+- [ ] 完成 ROM 启动链、分区、音频栈、组件和 SELinux 静态审计；
+- [ ] 在回滚闭合并取得临场授权后验证未经修改的 MoKee 实机基准；
+- [ ] 差量恢复 ESS9018、Forte ACDB 和 QUAT MI2S 音频等价性。
+
+## Phase 5C — `leo_audio` 源码产品
 
 - [ ] 准备 Linux 构建主机和充足的高速存储；
 - [ ] 锁定 Android 平台、MSM8994 common、`leo` device/vendor 和内核提交；
-- [ ] 首次构建只追求启动、显示、触摸、Wi-Fi和有线音频；
+- [ ] 建立不继承 full-phone 套件的 `leo_audio` 白名单产品；
+- [ ] 首次源码构建只追求启动、显示、触摸、Wi-Fi和有线音频；
 - [ ] 去除遗留的 SELinux Permissive 与禁止深度休眠参数；
 - [ ] 将专有文件改为用户本地提取，不进入公开源码仓库。
 
