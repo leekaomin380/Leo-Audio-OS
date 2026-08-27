@@ -1,7 +1,7 @@
 # 16：Phase 5B MoKee 兼容性桥梁全局路书
 
-> 状态：规划基线。本文授权文档、下载、只读解包与静态分析，不授权向设备写入任何分区，
-> 也不授权删除当前 MIUI 黄金参照、回滚材料或私有证据。
+> 状态：M0/M1 已于 2026-08-27 通过静态审计；当前停在 M2 设备写入门。本文不授权向设备写入
+> 任何分区，也不授权删除当前 MIUI 黄金参照、回滚材料或私有证据。
 
 ## 1. 目标与裁决
 
@@ -97,6 +97,11 @@ M1 不制造可刷候选，按需提取：
 
 **M1 通过条件**：能解释原版 MoKee 如何启动、如何出声、已有何种 ESS 支持，以及首个实机
 候选为何不会触碰未知分区。
+
+2026-08-27 裁决：上述条件已由 `manifests/mokee-rom-inventory-v0.1.tsv`、
+`manifests/mokee-audio-delta-v0.1.tsv`、`manifests/mokee-component-disposition-v0.1.tsv` 和
+`docs/reviews/2026-08-27-phase5b-m0-m1-static-audit.md` 闭合。M1 通过不等于授权 M2；当前必须
+停在设备写入门。
 
 ## 8. Gate M2：原版实机基准
 

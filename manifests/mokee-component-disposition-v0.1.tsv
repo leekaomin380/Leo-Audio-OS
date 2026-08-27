@@ -1,0 +1,104 @@
+partition	package_dir	bucket	rationale	gate
+system/app	AntHalService	remove-batch-4-optional-hardware	ANT is outside the dedicated network-audio profile	M4
+system/app	Backgrounds	remove-batch-1-user-app	decorative content	M4
+system/app	BasicDreams	remove-batch-1-user-app	screensaver UI	M4
+system/app	Bluetooth	retain-maintenance-first	retain until wired-audio and maintenance scope is frozen	M4-late
+system/app	BluetoothMidiService	remove-batch-4-optional-hardware	MIDI over Bluetooth is not required	M4
+system/app	BookmarkProvider	remove-batch-1-user-app	browser-era provider	M4
+system/app	BuiltInPrintService	remove-batch-4-optional-hardware	printing is outside profile	M4
+system/app	Calendar	remove-batch-1-user-app	user productivity app	M4
+system/app	CaptivePortalLogin	retain-maintenance-first	may be needed for Wi-Fi onboarding	M4-late
+system/app	CarrierDefaultApp	remove-batch-2-telephony	carrier provisioning	M4
+system/app	CertInstaller	retain-maintenance-first	VPN/Wi-Fi certificate maintenance	M4-late
+system/app	CompanionDeviceManager	remove-batch-4-optional-hardware	companion pairing outside profile	M4
+system/app	CtsShimPrebuilt	investigate	compatibility test shim; remove only with build graph proof	M4-late
+system/app	EasterEgg	remove-batch-1-user-app	nonfunctional decorative component	M4
+system/app	ExtShared	retain-core	framework shared-library extension	M4
+system/app	Gboard	remove-batch-1-user-app	input UI not required in normal player mode	M4
+system/app	HTMLViewer	remove-batch-1-user-app	generic document viewer	M4
+system/app	KeyChain	retain-maintenance-first	credential/VPN integration	M4-late
+system/app	LiveWallpapersPicker	remove-batch-1-user-app	wallpaper UI	M4
+system/app	OsuLogin	remove-batch-4-optional-hardware	Passpoint OSU not required for initial profile	M4
+system/app	PacProcessor	retain-maintenance-first	proxy/PAC may be needed for network access	M4-late
+system/app	Phonograph	remove-batch-1-user-app	local music UI replaced by dedicated player surface	M4
+system/app	PrintRecommendationService	remove-batch-4-optional-hardware	printing discovery	M4
+system/app	PrintSpooler	remove-batch-4-optional-hardware	printing	M4
+system/app	Profiles	remove-batch-5-mokee-extras	MoKee profiles UI/service	M4
+system/app	SecureElement	remove-batch-4-optional-hardware	payments and secure-element UX are out of scope	M4
+system/app	SimAppDialog	remove-batch-2-telephony	SIM UI	M4
+system/app	Stk	remove-batch-2-telephony	SIM toolkit	M4
+system/app	Terminal	remove-batch-1-user-app	maintenance uses hidden controlled entry, not exposed terminal	M4
+system/app	Traceur	remove-batch-1-user-app	developer tracing UI absent from release; retain build-time tooling separately	M4
+system/app	ViaBrowser	remove-batch-1-user-app	browser explicitly outside normal device profile	M4
+system/app	WAPPushManager	remove-batch-2-telephony	carrier WAP push	M4
+system/app	WallpaperBackup	remove-batch-1-user-app	wallpaper backup	M4
+system/priv-app	Aegis	remove-batch-5-mokee-extras	MoKee extra; exact dependencies must be checked first	M4
+system/priv-app	AudioFX	remove-batch-1-user-app	user-facing effect controller; do not conflate with required Dirac libraries	M4
+system/priv-app	BackupRestoreConfirmation	retain-maintenance-first	retain through recovery/backup design	M4-late
+system/priv-app	BlockedNumberProvider	remove-batch-2-telephony	telephony provider	M4
+system/priv-app	CalendarProvider	remove-batch-1-user-app	calendar data provider	M4
+system/priv-app	CallLogBackup	remove-batch-2-telephony	call log backup	M4
+system/priv-app	CellBroadcastReceiver	remove-batch-2-telephony	cell broadcast	M4
+system/priv-app	ContactsProvider	remove-batch-2-telephony	contacts provider	M4
+system/priv-app	CtsShimPrivPrebuilt	investigate	compatibility test shim	M4-late
+system/priv-app	DocumentsUI	retain-maintenance-first	file picker may be needed for APK/config import	M4-late
+system/priv-app	DownloadProvider	retain-core	Spotify and updater download plumbing	M4
+system/priv-app	DownloadProviderUi	retain-maintenance-first	maintenance visibility for downloads	M4-late
+system/priv-app	DynamicSystemInstallationService	remove-batch-4-optional-hardware	DSU is not a product requirement	M4
+system/priv-app	ExtServices	retain-core	framework module services	M4
+system/priv-app	ExternalStorageProvider	retain-maintenance-first	USB/local maintenance imports	M4-late
+system/priv-app	FusedLocation	remove-batch-4-optional-hardware	location outside player profile	M4
+system/priv-app	InputDevices	retain-core	physical input and maintenance interaction	M4
+system/priv-app	LocalTransport	retain-maintenance-first	backup transport pending recovery design	M4-late
+system/priv-app	Longshot	remove-batch-5-mokee-extras	MoKee screenshot extension	M4
+system/priv-app	MKParts	remove-batch-5-mokee-extras	MoKee settings extension	M4
+system/priv-app	MKSettingsProvider	investigate	remove only after callers and defaults are closed	M4-late
+system/priv-app	ManagedProvisioning	remove-batch-4-optional-hardware	enterprise provisioning outside profile	M4
+system/priv-app	MediaProvider	retain-core	Spotify/media storage integration	M4
+system/priv-app	MmsService	remove-batch-2-telephony	MMS service	M4
+system/priv-app	MoKeeCenter	remove-batch-5-mokee-extras	MoKee user-facing center	M4
+system/priv-app	MoKeePay	remove-batch-5-mokee-extras	payments outside profile	M4
+system/priv-app	MoKeeSetupWizard	remove-batch-5-mokee-extras	replace only after dedicated first-boot/maintenance provisioning exists	M4-late
+system/priv-app	MtpDocumentsProvider	retain-maintenance-first	USB maintenance transfer	M4-late
+system/priv-app	NetworkPermissionConfig	retain-core	network permission module	M4
+system/priv-app	NetworkStack	retain-core	Wi-Fi/IP connectivity	M4
+system/priv-app	ONS	remove-batch-2-telephony	carrier network selection	M4
+system/priv-app	PackageInstaller	retain-maintenance-first	controlled Spotify/VPN/update installation	M4-late
+system/priv-app	PermissionController	retain-core	Android permission runtime	M4
+system/priv-app	ProxyHandler	retain-maintenance-first	proxy/network compatibility	M4-late
+system/priv-app	Seedvault	remove-batch-5-mokee-extras	optional backup product; replace with release recovery plan	M4
+system/priv-app	SettingsProvider	retain-core	framework settings database	M4
+system/priv-app	SharedStorageBackup	retain-maintenance-first	retain until recovery model closes	M4-late
+system/priv-app	Shell	retain-maintenance-first	ADB/maintenance dependency; release ADB remains default-off	M4-late
+system/priv-app	StatementService	investigate	app-link verification dependency	M4-late
+system/priv-app	TeleService	remove-batch-2-telephony	phone service	M4
+system/priv-app	Telecom	remove-batch-2-telephony	call framework	M4
+system/priv-app	TelephonyProvider	remove-batch-2-telephony	telephony database	M4
+system/priv-app	UserDictionaryProvider	remove-batch-1-user-app	typing dictionary not needed in normal mode	M4
+system/priv-app	VpnDialogs	retain-maintenance-first	VPN consent/status UI	M4-late
+system/priv-app	WarpShare	remove-batch-5-mokee-extras	MoKee sharing extension	M4
+system/priv-app	qcrilmsgtunnel	remove-batch-2-telephony	Qualcomm radio messaging	M4
+system/product/app	DeskClock	remove-batch-1-user-app	user utility	M4
+system/product/app	Email	remove-batch-1-user-app	email client	M4
+system/product/app	ExactCalculator	remove-batch-1-user-app	calculator	M4
+system/product/app	Exchange2	remove-batch-1-user-app	email exchange service	M4
+system/product/app	Gallery2	remove-batch-1-user-app	gallery	M4
+system/product/app	MoKeeThemesStub	remove-batch-5-mokee-extras	theme stub	M4
+system/product/app	ModuleMetadata	retain-core	modular system metadata	M4
+system/product/app	PhotoTable	remove-batch-1-user-app	photo dream	M4
+system/product/app	Recorder	remove-batch-3-camera-recorder	recording outside profile	M4
+system/product/app	messaging	remove-batch-2-telephony	SMS UI	M4
+system/product/app	webview	retain-core	Spotify/login and embedded maintenance content may require WebView	M4
+system/product/priv-app	CarrierConfig	remove-batch-2-telephony	carrier config	M4
+system/product/priv-app	Contacts	remove-batch-2-telephony	contacts UI	M4
+system/product/priv-app	Dialer	remove-batch-2-telephony	dialer	M4
+system/product/priv-app	EmergencyInfo	remove-batch-2-telephony	phone emergency information UI	M4
+system/product/priv-app	Lawnchair	retain-maintenance-first	baseline HOME and recovery exit until Leo Home is proven	M4-late
+system/product/priv-app	OneTimeInitializer	investigate	first-boot initialization caller graph required	M4-late
+system/product/priv-app	Settings	retain-maintenance-first	hidden maintenance mode	M4-late
+system/product/priv-app	SettingsIntelligence	retain-maintenance-first	Settings search/suggestions; remove only with Settings reduction	M4-late
+system/product/priv-app	Snap	remove-batch-3-camera-recorder	camera UI	M4
+system/product/priv-app	StorageManager	retain-maintenance-first	storage maintenance	M4-late
+system/product/priv-app	SystemUI	retain-core	status, keyguard and core system surfaces; dedicated UI reduction is separate architecture work	M4
+system/product/priv-app	ThemePicker	remove-batch-1-user-app	theme UI	M4
+system/product/priv-app	WallpaperCropper	remove-batch-1-user-app	wallpaper UI	M4
