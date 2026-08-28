@@ -14,18 +14,23 @@ Leo Audio OS 是一个面向 Xiaomi Mi Note Pro（代号 `leo`）的长期开放
 ## 当前状态
 
 项目已经完成 **Phase 1：音频依赖闭包 v0.2**，冻结了 **Phase 2：播放器 Shell 原型
-v0.2.7 基线**，完成 **Phase 3 Gate 3：最小 Leo Shell system 集成的本机静态门禁**，并在一台
-参考设备上完成 **Phase 4：正式 system/boot 配对的首次受控写入与持久启动验收**。
+v0.2.7 基线**，完成 **Phase 3 Gate 3：最小 Leo Shell system 集成的本机静态门禁**，在一台
+参考设备上完成 **Phase 4：正式 system/boot 配对的首次受控写入与持久启动验收**，并于
+2026-08-28 完成 **Phase 5B M2：未修改 MoKee 实机基准**。
 
-- 参考设备现运行基于 MIUI 9.2.3.0 的第一代 Leo Audio OS 原型；这不是第二代源码 ROM；
-- 正式 system 以只读 dm-verity 挂载，正式 project boot 已持久写入；
-- Leo Shell 已成为默认 HOME，Spotify 登录、外放、有线耳机和原厂 HiFi 路径通过实测；
-- userdata、recovery、persist、modem、Bootloader 等未被本次写入；
-- 写入前的当前 system 已在两块独立外置介质完成全量哈希回读，exact stock boot/system/recovery
-  仍作为回滚材料保留；
+- **M2 的核心结论是一条被实机否定的推断**：原版 MoKee 并不把耳机音频送入 ESS9018，
+  它走 SLIMBUS_0 与 WCD9330 内置耳放；但 ESS 硬件链在 MoKee 上完整可用，
+  经 A/B/A 因果验证成立。缺口仅在 audio HAL 的输出设备选择逻辑，
+  内核、DTB、mixer 控件与 mixer XML 均无需改动；
+- 参考设备当前**运行 exact stock MIUI 9.2.3.0**，不是第一代 Leo Audio OS；
+- **已确认阻断缺陷**：第一代 system/boot 配对无法在干净 `userdata` 上完成 provisioning，
+  只能在已有 userdata 的设备上启动。根因未定位；
+- `system` 的 fastboot 回滚已首次实测，Phase 4 黄金配对与 exact stock 两层材料均被实际使用；
+- 最小回滚集已在工程主机之外的两处独立介质完成回读校验；
+- userdata、`bk1`、`misc` 已清；recovery、persist、modem、tz、aboot 与 Bootloader 全程未写；
 - 还没有可公开下载的 Leo Audio OS 固件；正式镜像与专有输入不进入 Git；
-- 单台参考机成功不等于发布成熟：实际回滚、USB-OTG、重复冷启动、长时功耗和第二台设备故障演练
-  仍未闭合；
+- 单台参考机成功不等于发布成熟：provisioning 缺陷、USB-OTG 回滚、长时功耗、
+  第二台设备故障演练与音频等价性仍未闭合；
 - 原厂音频运行路径、HAL/ELF、stock boot/DTB、首批内核配置和 SELinux 有效授权
   闭包已经建立；最终最小保留集仍待功能与故障测试证明。
 
@@ -73,6 +78,9 @@ v0.2.7 基线**，完成 **Phase 3 Gate 3：最小 Leo Shell system 集成的本
 - [18：Phase 5B M2 原版 MoKee 实机基准路书](docs/18-PHASE-5B-M2-UNMODIFIED-MOKEE-BASELINE-RUNBOOK.md)
 - [2026-08-26：Phase 5B MoKee 全量工程交接](docs/HANDOFF-2026-08-26-PHASE-5B-MOKEE.md)
 - [2026-08-27：Phase 5B Gate M0/M1 静态审计](docs/reviews/2026-08-27-phase5b-m0-m1-static-audit.md)
+- [2026-08-28：Phase 5B M2 写入前硬门预检](docs/reviews/2026-08-28-phase5b-m2-preflight-gates.md)
+- [2026-08-28：Phase 5B M2 MoKee 实机基准与 ESS 路由因果验证](docs/reviews/2026-08-28-phase5b-m2-mokee-runtime-baseline.md)
+- [2026-08-28：回滚实测、故障处置与新发现缺陷](docs/reviews/2026-08-28-phase5b-rollback-and-fault-handling.md)
 - [Phase 3 Gate 0 评审](docs/reviews/2026-08-24-phase3-gate0.md)
 - [产品愿景与命名](docs/VISION.md)
 - [初始系统架构](docs/ARCHITECTURE.md)

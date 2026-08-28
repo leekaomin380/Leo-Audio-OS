@@ -52,7 +52,8 @@
 - [x] 用正式密钥重建并冻结首个 release-set；
 - [x] 实测 stock recovery/fastboot 救援入口、ADB sideload 与双介质当前 system 备份；
 - [x] 在参考设备完成正式 system/boot 首次受控写入、持久启动与 Spotify/HiFi 验收；
-- [ ] 实测 USB-OTG 与完整 boot/system 回滚；
+- [ ] 实测 USB-OTG 回滚；`system` 的 fastboot 回滚已于 2026-08-28 首次实测，两层材料均已使用；
+- [ ] 修复第一代配对无法在干净 `userdata` 上完成 provisioning 的阻断缺陷；
 - [ ] 实现启动计数、安全模式和 recovery 入口；
 - [ ] 生成签名的完整与增量更新；
 - [ ] 在第二台测试设备上完成破坏性故障演练。
@@ -70,8 +71,8 @@
 - [x] 锁定并验证一个 `leo` MoKee Android 10 ROM；
 - [x] 完成 ROM 启动链、分区、音频栈、组件和 SELinux 静态审计；
 - [x] 双重重建并回环验证未经修改的 M2 system/boot 离线候选，冻结实机写入路书；
-- [ ] 在回滚闭合并取得临场授权后验证未经修改的 MoKee 实机基准；
-- [ ] 差量恢复 ESS9018、Forte ACDB 和 QUAT MI2S 音频等价性。
+- [x] 在回滚闭合并取得临场授权后验证未经修改的 MoKee 实机基准；
+- [ ] 差量恢复 ESS9018、Forte ACDB 和 QUAT MI2S 音频等价性；实机已证明缺口仅在 HAL 的输出设备选择。
 - [ ] 在 HAL 建立可读回验证的 Leo HiFi Controller，并向 Leo Home 提供只读状态显示。
 
 ## Phase 5C — `leo_audio` 源码产品
