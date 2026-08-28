@@ -1,0 +1,97 @@
+{
+  "schema": 1,
+  "classification": "m2_rollback_set",
+  "created": "2026-08-28",
+  "purpose": "Off-host rollback material for Phase 5B M2 unmodified-MoKee baseline write",
+  "device": {
+    "vendor": "Xiaomi",
+    "product": "Mi Note Pro",
+    "codename": "leo",
+    "stock_build": "V9.2.3.0.NXHCNEK"
+  },
+  "device_write_authorized": false,
+  "allowed_partitions_on_rollback": ["system", "boot", "recovery"],
+  "forbidden_partitions": ["userdata", "persist", "modem", "tz", "aboot", "bootloader", "firmware"],
+  "layers": [
+    {
+      "order": 1,
+      "name": "phase4_golden_pair",
+      "provenance": "docs/reviews/2026-08-26-phase4-first-controlled-write.md",
+      "runtime_verified_on_reference_device": true,
+      "members": [
+        {
+          "file": "leo-phase4-golden-system-sparse.img",
+          "target_partition": "system",
+          "size": 1336991832,
+          "sha256": "afa12b23e4570f96cc5e4ee70cf754779c75cf834a9d61f481f08d1a96e21eb1"
+        },
+        {
+          "file": "leo-phase4-golden-boot.img",
+          "target_partition": "boot",
+          "size": 24192058,
+          "sha256": "dfca241d75d494e0d85502d1368a3475f0e2576dd69b28274fcf4532a2779685"
+        }
+      ]
+    },
+    {
+      "order": 2,
+      "name": "exact_stock",
+      "provenance": "official fastboot ROM leo_images_V9.2.3.0.NXHCNEK_20171229.0000.00_7.0_cn",
+      "runtime_verified_on_reference_device": false,
+      "members": [
+        {
+          "file": "leo-stock-system-sparse.img",
+          "target_partition": "system",
+          "size": 1368173500,
+          "sha256": "03960aeded4f6b3c7802109ff74aedec67c5de15841bf175ace66a89cde36003"
+        },
+        {
+          "file": "leo-stock-boot.img",
+          "target_partition": "boot",
+          "size": 24188234,
+          "sha256": "bc64d15c26c53644e0d66e8dd3dc9e9c52bf2d4e4267d3c9f71ee90455e567d5"
+        },
+        {
+          "file": "leo-stock-recovery.img",
+          "target_partition": "recovery",
+          "size": 26518862,
+          "sha256": "4aafc56e0feb5be5213a58e9bc770730d9cf3746a9b4ee31bc79d6484af461e0"
+        }
+      ]
+    }
+  ],
+  "copies": [
+    {
+      "medium": "engineering host (source of truth)",
+      "kind": "internal_nvme",
+      "readback_verified": true,
+      "readback_date": "2026-08-28"
+    },
+    {
+      "medium": "local Debian file server",
+      "kind": "independent_machine_nvme",
+      "path_class": "private",
+      "readback_verified": true,
+      "readback_date": "2026-08-28",
+      "readback_tool": "sha256sum -c"
+    },
+    {
+      "medium": "external USB volume B",
+      "kind": "independent_physical_disk",
+      "volume_identity_recorded_privately": true,
+      "readback_verified": true,
+      "readback_date": "2026-08-28",
+      "readback_tool": "shasum -a 256 -c"
+    }
+  ],
+  "independent_copies_beyond_host": 2,
+  "known_hazards": [
+    {
+      "hazard": "size_collision",
+      "detail": "The Phase 4 development probe sparse image is byte-count identical to the golden release sparse (1336991832 bytes) but is explicitly ruled never-flash.",
+      "never_flash_sha256": "49e9c2cdc5217e2e94f6a02e4f7bc176988ffdcd06ecd5ac54999bcda0e11493",
+      "mitigation": "Select rollback artifacts by SHA-256 only, never by filename or size."
+    }
+  ],
+  "gate_reference": "docs/18-PHASE-5B-M2-UNMODIFIED-MOKEE-BASELINE-RUNBOOK.md section 4 items 6 and 7"
+}
