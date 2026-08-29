@@ -74,6 +74,9 @@
 - [x] 在回滚闭合并取得临场授权后验证未经修改的 MoKee 实机基准；
 - [ ] 差量恢复 ESS9018、Forte ACDB 和 QUAT MI2S 音频等价性；实机已证明缺口仅在 HAL 的输出设备选择。
 - [ ] 在 HAL 建立可读回验证的 Leo HiFi Controller，并向 Leo Home 提供只读状态显示。
+- [ ] 建立采样率策略：对 44.1 kHz 家族优先验证端到端 44.1 kHz 输出，消除当前
+  `44.1 → 48 kHz` 的非必要 SRC；对无法直通的混音、系统音或 48 kHz 内容明确记录
+  SRC 原因与实际输出率，不作“全局 bit-perfect”承诺。
 
 ## Phase 5C — `leo_audio` 源码产品
 
