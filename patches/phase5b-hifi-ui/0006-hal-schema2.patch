@@ -1,0 +1,321 @@
+diff --git a/hal/audio_hw.c b/hal/audio_hw.c
+--- a/hal/audio_hw.c
++++ b/hal/audio_hw.c
+@@ -2368,6 +2368,9 @@
+     struct audio_device *adev = out->dev;
+     int snd_scard_state = get_snd_card_state(adev);
+     ssize_t ret = 0;
++#ifdef LEO_HIFI_ENABLED
++    unsigned long long leo_token = 0;
++#endif
+ 
+     lock_output_stream(out);
+ 
+@@ -2459,6 +2462,11 @@
+             if (adev->adm_request_focus)
+                 adev->adm_request_focus(adev->adm_data, out->handle);
+ 
++#ifdef LEO_HIFI_ENABLED
++            /* Capture before the blocking write. A route change invalidates this token. */
++            if (out->usecase == USECASE_AUDIO_PLAYBACK_DEEP_BUFFER)
++                leo_token = platform_leo_hifi_flow_token(adev->platform);
++#endif
+             if (out->usecase == USECASE_AUDIO_PLAYBACK_AFE_PROXY)
+                 ret = pcm_mmap_write(out->pcm, (void *)buffer, bytes);
+             else
+@@ -2466,8 +2474,19 @@
+ 
+             if (ret < 0)
+                 ret = -errno;
+-            else if (ret == 0)
++            else if (ret == 0) {
+                 out->written += bytes / (out->config.channels * sizeof(short));
++#ifdef LEO_HIFI_ENABLED
++                if (out->format == AUDIO_FORMAT_PCM_16_BIT &&
++                    out->usecase == USECASE_AUDIO_PLAYBACK_DEEP_BUFFER) {
++                    unsigned int avail = 0;
++                    struct timespec timestamp;
++                    bool valid = pcm_get_htimestamp(out->pcm, &avail, &timestamp) == 0;
++                    platform_leo_hifi_note_frames(adev->platform, leo_token,
++                        (uintptr_t)out, out->written, pcm_get_buffer_size(out->pcm), avail, valid);
++                }
++#endif
++            }
+ 
+             if (adev->adm_abandon_focus)
+                 adev->adm_abandon_focus(adev->adm_data, out->handle);
+diff --git a/hal/msm8974/leo_hifi.c b/hal/msm8974/leo_hifi.c
+--- a/hal/msm8974/leo_hifi.c
++++ b/hal/msm8974/leo_hifi.c
+@@ -166,8 +166,15 @@
+                    const char *device_table_name)
+ {
+     char value[PROPERTY_VALUE_MAX];
++    struct timespec now;
+ 
+     memset(lh, 0, sizeof(*lh));
++    pthread_mutex_init(&lh->telemetry_lock, NULL);
++    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0)
++        lh->session = ((unsigned long long)now.tv_sec * 1000000000ULL
++                       + (unsigned long long)now.tv_nsec) & 0x7fffffffffffffffULL;
++    leo_flow_reset(&lh->flow);
++
+     lh->effective = LEO_HIFI_IDLE;
+     lh->mixer = mixer;
+     lh->device_name = device_table_name;
+@@ -555,6 +562,9 @@
+ void leo_hifi_on_route(struct leo_hifi *lh, bool to_hifi_device)
+ {
+     int vol[2];
++    pthread_mutex_lock(&lh->telemetry_lock);
++    leo_flow_reset(&lh->flow);
++    pthread_mutex_unlock(&lh->telemetry_lock);
+ 
+     if (!to_hifi_device) {
+         /*
+@@ -626,6 +636,9 @@
+ {
+     lh->generation++;
+     lh->evidence = 0;
++    pthread_mutex_lock(&lh->telemetry_lock);
++    leo_flow_reset(&lh->flow);
++    pthread_mutex_unlock(&lh->telemetry_lock);
+     lh->bypass = 0;
+     lh->effective = LEO_HIFI_IDLE;
+     ALOGI("%s: gen=%llu -> idle", __func__, lh->generation);
+@@ -635,6 +648,13 @@
+ {
+     const char *sign = "";
+     int vol0 = -1, vol1 = -1, whole = 0, tenth = 0;
++    bool is_live = false, flow_active = false;
++    const char *backend_str = "unconfirmed";
++    struct timespec now;
++    unsigned long long current_session = 0;
++    int v_bw = -1, v_sr = -1;
++    const char *s_bw = NULL, *s_sr = NULL;
++    bool quat_on = false;
+ 
+     if (lh->supported && lh->ctl_volume != NULL) {
+         vol0 = mixer_ctl_get_value(lh->ctl_volume, 0);
+@@ -643,22 +663,76 @@
+     if (vol0 >= 0)
+         leo_hifi_ctl_to_db(vol0, &sign, &whole, &tenth);
+ 
+-    /*
+-     * Unknown values are reported as -1 / "unconfirmed"; we never fill in a
+-     * guess.  The UI is required to display "unconfirmed" rather than infer
+-     * effective state from requested state.
+-     */
++    if (lh->ctl_quat_bw && lh->ctl_quat_sr) {
++        v_bw = mixer_ctl_get_value(lh->ctl_quat_bw, 0);
++        s_bw = (v_bw >= 0) ? mixer_ctl_get_enum_string(lh->ctl_quat_bw, v_bw) : NULL;
++        v_sr = mixer_ctl_get_value(lh->ctl_quat_sr, 0);
++        s_sr = (v_sr >= 0) ? mixer_ctl_get_enum_string(lh->ctl_quat_sr, v_sr) : NULL;
++
++        if (s_bw && strcmp(s_bw, LEO_HIFI_BITWIDTH_STR) == 0 &&
++            s_sr && strcmp(s_sr, LEO_HIFI_SAMPLERATE_STR) == 0) {
++            backend_str = LEO_HIFI_BITWIDTH_STR "/" LEO_HIFI_SAMPLERATE_STR;
++        }
++    }
++
++    if (lh->supported && lh->effective == LEO_HIFI_ACTIVE && lh->fail_code == LEO_FAIL_NONE && leo_ess_bound()) {
++        /* This first UI release proves only MM1/deep-buffer PCM flow. */
++        quat_on = lh->ctl_quat_mm[0] && mixer_ctl_get_value(lh->ctl_quat_mm[0], 0) == 1;
++        if (quat_on &&
++            (lh->ctl_hphl_dac && mixer_ctl_get_value(lh->ctl_hphl_dac, 0) == 0) &&
++            strcmp(backend_str, "unconfirmed") != 0 &&
++            vol0 >= LEO_HIFI_CTL_FLOOR && vol0 <= LEO_HIFI_CTL_CEIL && vol0 == vol1) {
++            is_live = true;
++        }
++    }
++
++    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
++        int64_t ms = (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
++        pthread_mutex_lock(&lh->telemetry_lock);
++        current_session = lh->session;
++        flow_active = is_live && leo_flow_live(&lh->flow, ms);
++        pthread_mutex_unlock(&lh->telemetry_lock);
++    }
++
+     snprintf(buf, len,
+-             "supported=%d;permanent_fail=%d;probes=%d;requested=%s;"
+-             "effective=%s;gen=%llu;fail=%d;ev=0x%x;bypass=0x%x;"
+-             "vol_ctl_l=%d;vol_ctl_r=%d;vol_db=%s%d.%d;vol_user=%d;"
+-             "vol_applied=%d;backend=%s/%s;acdb=absent_expected",
+-             lh->supported ? 1 : 0, lh->permanent_fail ? 1 : 0,
+-             lh->probe_attempts,
++             "schema=2;session=%llu;gen=%llu;supported=%d;requested=%s;"
++             "effective=%s;live=%d;flow=%d;vol_ctl_l=%d;vol_ctl_r=%d;"
++             "vol_db=%s%d.%d;vol_user=%d;backend=%s;fail=%d;"
++             "permanent_fail=%d;probes=%d;ev=0x%x;bypass=0x%x;vol_applied=%d;"
++             "acdb=absent_expected",
++             current_session, lh->generation, lh->supported ? 1 : 0,
+              lh->requested ? "hifi" : "standard",
+              leo_state_name(lh->effective),
+-             lh->generation, lh->fail_code, lh->evidence, lh->bypass,
++             is_live ? 1 : 0, flow_active ? 1 : 0,
+              vol0, vol1, sign, whole, tenth, lh->vol_user,
+-             lh->vol_applied ? 1 : 0,
+-             LEO_HIFI_BITWIDTH_STR, LEO_HIFI_SAMPLERATE_STR);
+-}
++             backend_str, lh->fail_code,
++             lh->permanent_fail ? 1 : 0, lh->probe_attempts,
++             lh->evidence, lh->bypass, lh->vol_applied ? 1 : 0);
++}
++
++unsigned long long leo_hifi_flow_token(struct leo_hifi *lh)
++{
++    unsigned long long token;
++    pthread_mutex_lock(&lh->telemetry_lock);
++    token = lh->flow.token;
++    pthread_mutex_unlock(&lh->telemetry_lock);
++    return token;
++}
++
++void leo_hifi_note_frames(struct leo_hifi *lh, unsigned long long token,
++                         uintptr_t stream, uint64_t written, unsigned int size,
++                         unsigned int avail, bool valid)
++{
++    struct timespec now;
++    int64_t ms = -1;
++    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0)
++        ms = (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
++    pthread_mutex_lock(&lh->telemetry_lock);
++    leo_flow_sample(&lh->flow, token, stream, written, size, avail, valid, ms);
++    pthread_mutex_unlock(&lh->telemetry_lock);
++}
++
++void leo_hifi_destroy(struct leo_hifi *lh)
++{
++    pthread_mutex_destroy(&lh->telemetry_lock);
++}
+diff --git a/hal/msm8974/leo_hifi.h b/hal/msm8974/leo_hifi.h
+--- a/hal/msm8974/leo_hifi.h
++++ b/hal/msm8974/leo_hifi.h
+@@ -30,6 +30,10 @@
+ 
+ #include <stdbool.h>
+ #include <stddef.h>
++#include <time.h>
++#include <stdint.h>
++#include "leo_hifi_flow.h"
++#include <pthread.h>
+ #include <tinyalsa/asoundlib.h>
+ 
+ /* mixer_paths.xml path suffix; must equal device_table[SND_DEVICE_OUT_LEO_HIFI_HEADPHONES] */
+@@ -115,6 +119,10 @@
+     unsigned int        evidence;       /* LEO_EV_* bitmap                       */
+     unsigned int        bypass;         /* LEO_BP_* bitmap, last observation     */
+ 
++    pthread_mutex_t     telemetry_lock;
++    unsigned long long  session;
++    struct leo_hifi_flow flow;
++
+     int                 vol_user;       /* 0..LEO_HIFI_VOL_MAX                   */
+     bool                vol_applied;    /* false until we have written "Volume"  */
+ 
+@@ -292,6 +300,15 @@
+ /* Thin wrappers defined in platform.c and called from audio_hw.c. */
+ void platform_leo_hifi_route_enabled(void *platform, int snd_device);
+ void platform_leo_hifi_route_disabled(void *platform, int snd_device);
+-
++unsigned long long platform_leo_hifi_flow_token(void *platform);
++void platform_leo_hifi_note_frames(void *platform, unsigned long long token,
++                                  uintptr_t stream, uint64_t written,
++                                  unsigned int size, unsigned int avail, bool valid);
++
++unsigned long long leo_hifi_flow_token(struct leo_hifi *lh);
++void leo_hifi_note_frames(struct leo_hifi *lh, unsigned long long token,
++                         uintptr_t stream, uint64_t written, unsigned int size,
++                         unsigned int avail, bool valid);
++void leo_hifi_destroy(struct leo_hifi *lh);
+ 
+ #endif /* LEO_HIFI_H */
+diff --git a/hal/msm8974/leo_hifi_flow.h b/hal/msm8974/leo_hifi_flow.h
+new file mode 100644
+--- /dev/null
++++ b/hal/msm8974/leo_hifi_flow.h
+@@ -0,0 +1,46 @@
++#ifndef LEO_HIFI_FLOW_H
++#define LEO_HIFI_FLOW_H
++#include <stdint.h>
++#include <stdbool.h>
++/* Caller owns the telemetry mutex. No mixer access and no stream/adev lock acquisition. */
++struct leo_hifi_flow {
++    uint64_t token, presented;
++    uintptr_t stream;
++    int64_t observed_ms;
++    unsigned int advances;
++    bool valid;
++};
++static inline void leo_flow_reset(struct leo_hifi_flow *f)
++{
++    f->token++;
++    if (f->token == 0) f->token = 1;
++    f->valid = false;
++    f->advances = 0;
++}
++static inline bool leo_flow_live(const struct leo_hifi_flow *f, int64_t now)
++{
++    return f->valid && f->advances >= 2 && now >= f->observed_ms
++        && now - f->observed_ms <= 2000;
++}
++static inline void leo_flow_sample(struct leo_hifi_flow *f, uint64_t token,
++        uintptr_t stream, uint64_t written, unsigned int size, unsigned int avail,
++        bool valid, int64_t now)
++{
++    uint64_t presented;
++    if (token != f->token || token == 0) return; /* old route cannot update the new one */
++    if (!valid || now < 0 || size == 0 || avail > size || written < size - avail) {
++        f->valid = false; f->advances = 0; return;
++    }
++    presented = written - (size - avail);
++    if (!f->valid || stream != f->stream || presented < f->presented
++            || now < f->observed_ms || now - f->observed_ms > 2000) {
++        f->advances = 0;
++    } else if (presented > f->presented) {
++        if (f->advances < 2) f->advances++;
++    } else {
++        f->advances = 0;
++    }
++    f->valid = true; f->presented = presented; f->stream = stream;
++    f->observed_ms = now;
++}
++#endif
+diff --git a/hal/msm8974/platform.c b/hal/msm8974/platform.c
+--- a/hal/msm8974/platform.c
++++ b/hal/msm8974/platform.c
+@@ -1475,6 +1475,10 @@
+     /* deinit audio device arbitration */
+     audio_extn_dev_arbi_deinit();
+ 
++#ifdef LEO_HIFI_ENABLED
++    leo_hifi_destroy(&my_data->leo);
++#endif
++
+     if (my_data->edid_info) {
+         free(my_data->edid_info);
+         my_data->edid_info = NULL;
+@@ -1485,6 +1489,22 @@
+     audio_extn_usb_deinit();
+     audio_extn_dap_hal_deinit();
+ }
++
++#ifdef LEO_HIFI_ENABLED
++unsigned long long platform_leo_hifi_flow_token(void *platform)
++{
++    struct platform_data *my_data = (struct platform_data *)platform;
++    return my_data ? leo_hifi_flow_token(&my_data->leo) : 0;
++}
++
++void platform_leo_hifi_note_frames(void *platform, unsigned long long token,
++                                  uintptr_t stream, uint64_t written,
++                                  unsigned int size, unsigned int avail, bool valid)
++{
++    struct platform_data *my_data = (struct platform_data *)platform;
++    if (my_data) leo_hifi_note_frames(&my_data->leo, token, stream, written, size, avail, valid);
++}
++#endif
+ 
+ const char *platform_get_snd_device_name(snd_device_t snd_device)
+ {

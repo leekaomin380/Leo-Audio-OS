@@ -1,0 +1,275 @@
+diff --git a/hal/msm8974/leo_hifi.c b/hal/msm8974/leo_hifi.c
+--- a/hal/msm8974/leo_hifi.c
++++ b/hal/msm8974/leo_hifi.c
+@@ -644,17 +644,122 @@
+     ALOGI("%s: gen=%llu -> idle", __func__, lh->generation);
+ }
+ 
++static void leo_hifi_eval_state(struct leo_hifi *lh, bool *out_live, bool *out_flow) {
++    *out_live = false;
++    *out_flow = false;
++    if (!lh->supported || lh->effective != LEO_HIFI_ACTIVE || lh->fail_code != LEO_FAIL_NONE || !leo_ess_bound())
++        return;
++        
++    int vol0 = -1, vol1 = -1;
++    if (lh->ctl_volume != NULL) {
++        vol0 = mixer_ctl_get_value(lh->ctl_volume, 0);
++        vol1 = mixer_ctl_get_value(lh->ctl_volume, 1);
++    }
++    
++    bool quat_on = lh->ctl_quat_mm[0] && mixer_ctl_get_value(lh->ctl_quat_mm[0], 0) == 1;
++    bool dac_off = lh->ctl_hphl_dac && mixer_ctl_get_value(lh->ctl_hphl_dac, 0) == 0;
++    bool backend_ok = false;
++    if (lh->ctl_quat_bw && lh->ctl_quat_sr) {
++        int v_bw = mixer_ctl_get_value(lh->ctl_quat_bw, 0);
++        const char *s_bw = (v_bw >= 0) ? mixer_ctl_get_enum_string(lh->ctl_quat_bw, v_bw) : NULL;
++        int v_sr = mixer_ctl_get_value(lh->ctl_quat_sr, 0);
++        const char *s_sr = (v_sr >= 0) ? mixer_ctl_get_enum_string(lh->ctl_quat_sr, v_sr) : NULL;
++        if (s_bw && strcmp(s_bw, LEO_HIFI_BITWIDTH_STR) == 0 &&
++            s_sr && strcmp(s_sr, LEO_HIFI_SAMPLERATE_STR) == 0) {
++            backend_ok = true;
++        }
++    }
++    
++    if (quat_on && dac_off && backend_ok && vol0 >= LEO_HIFI_CTL_FLOOR && vol0 <= LEO_HIFI_CTL_CEIL && vol0 == vol1) {
++        *out_live = true;
++    }
++    
++    struct timespec now;
++    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
++        int64_t ms = (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
++        pthread_mutex_lock(&lh->telemetry_lock);
++        *out_flow = *out_live && leo_flow_live(&lh->flow, ms);
++        pthread_mutex_unlock(&lh->telemetry_lock);
++    }
++}
++
++static bool parse_uint63(const char *str, unsigned long long *out) {
++    if (!str || !*str) return false;
++    unsigned long long val = 0;
++    for (int i = 0; str[i]; i++) {
++        if (str[i] < '0' || str[i] > '9') return false;
++        unsigned int digit = (unsigned int)(str[i] - '0');
++        if (val > (9223372036854775807ULL - digit) / 10ULL) return false;
++        val = val * 10ULL + digit;
++    }
++    if (val > 9223372036854775807ULL) return false;
++    *out = val;
++    return true;
++}
++
++int leo_hifi_process_request(struct leo_hifi *lh, const char *mode_str, const char *vol_str, const char *sess_str, const char *gen_str, bool *mode_changed) {
++    if (mode_changed) *mode_changed = false;
++    if (!lh) return -EINVAL;
++    /* Caller holds adev->lock across validation, mutation and route selection. */
++    if (!mode_str && !vol_str) return -EINVAL;
++    if (mode_str && vol_str) return -EINVAL;
++    if (!sess_str || !gen_str) return -EINVAL;
++    
++    unsigned long long session, gen;
++    if (!parse_uint63(sess_str, &session) || session == 0) return -EINVAL;
++    if (!parse_uint63(gen_str, &gen)) return -EINVAL;
++    
++    int vol_val = 0;
++    bool mode_val = false;
++    
++    if (vol_str) {
++        if (vol_str[0] == '0' && vol_str[1] != '\0') return -EINVAL;
++        unsigned long long v;
++        if (!parse_uint63(vol_str, &v) || v > 60) return -EINVAL;
++        vol_val = (int)v;
++    }
++    
++    if (mode_str) {
++        if (strcmp(mode_str, "true") == 0) mode_val = true;
++        else if (strcmp(mode_str, "false") == 0) mode_val = false;
++        else return -EINVAL;
++    }
++    
++    pthread_mutex_lock(&lh->telemetry_lock);
++    unsigned long long current_session = lh->session;
++    pthread_mutex_unlock(&lh->telemetry_lock);
++    
++    if (session != current_session || gen != lh->generation) return -EAGAIN;
++    
++    if (vol_str) {
++        bool is_live, flow_active;
++        if (!lh->requested || lh->effective != LEO_HIFI_ACTIVE || lh->fail_code != LEO_FAIL_NONE) return -EAGAIN;
++        leo_hifi_eval_state(lh, &is_live, &flow_active);
++        if (!flow_active) return -EAGAIN;
++        
++        int ret = leo_hifi_apply_volume(lh, vol_val);
++        return (ret == 0) ? 0 : ret;
++    }
++    
++    if (mode_str) {
++        if (leo_hifi_set_mode(lh, mode_val)) {
++            if (mode_changed) *mode_changed = true;
++        }
++        return 0;
++    }
++    
++    return -EINVAL;
++}
++
+ void leo_hifi_status_string(struct leo_hifi *lh, char *buf, size_t len)
+ {
+     const char *sign = "";
+     int vol0 = -1, vol1 = -1, whole = 0, tenth = 0;
+     bool is_live = false, flow_active = false;
+     const char *backend_str = "unconfirmed";
+-    struct timespec now;
+     unsigned long long current_session = 0;
+     int v_bw = -1, v_sr = -1;
+     const char *s_bw = NULL, *s_sr = NULL;
+-    bool quat_on = false;
+ 
+     if (lh->supported && lh->ctl_volume != NULL) {
+         vol0 = mixer_ctl_get_value(lh->ctl_volume, 0);
+@@ -675,27 +780,14 @@
+         }
+     }
+ 
+-    if (lh->supported && lh->effective == LEO_HIFI_ACTIVE && lh->fail_code == LEO_FAIL_NONE && leo_ess_bound()) {
+-        /* This first UI release proves only MM1/deep-buffer PCM flow. */
+-        quat_on = lh->ctl_quat_mm[0] && mixer_ctl_get_value(lh->ctl_quat_mm[0], 0) == 1;
+-        if (quat_on &&
+-            (lh->ctl_hphl_dac && mixer_ctl_get_value(lh->ctl_hphl_dac, 0) == 0) &&
+-            strcmp(backend_str, "unconfirmed") != 0 &&
+-            vol0 >= LEO_HIFI_CTL_FLOOR && vol0 <= LEO_HIFI_CTL_CEIL && vol0 == vol1) {
+-            is_live = true;
+-        }
+-    }
+-
+-    if (clock_gettime(CLOCK_MONOTONIC, &now) == 0) {
+-        int64_t ms = (int64_t)now.tv_sec * 1000 + now.tv_nsec / 1000000;
+-        pthread_mutex_lock(&lh->telemetry_lock);
+-        current_session = lh->session;
+-        flow_active = is_live && leo_flow_live(&lh->flow, ms);
+-        pthread_mutex_unlock(&lh->telemetry_lock);
+-    }
++    leo_hifi_eval_state(lh, &is_live, &flow_active);
++
++    pthread_mutex_lock(&lh->telemetry_lock);
++    current_session = lh->session;
++    pthread_mutex_unlock(&lh->telemetry_lock);
+ 
+     snprintf(buf, len,
+-             "schema=2;session=%llu;gen=%llu;supported=%d;requested=%s;"
++             "schema=3;session=%llu;gen=%llu;supported=%d;requested=%s;"
+              "effective=%s;live=%d;flow=%d;vol_ctl_l=%d;vol_ctl_r=%d;"
+              "vol_db=%s%d.%d;vol_user=%d;backend=%s;fail=%d;"
+              "permanent_fail=%d;probes=%d;ev=0x%x;bypass=0x%x;vol_applied=%d;"
+diff --git a/hal/msm8974/leo_hifi.h b/hal/msm8974/leo_hifi.h
+--- a/hal/msm8974/leo_hifi.h
++++ b/hal/msm8974/leo_hifi.h
+@@ -297,6 +297,8 @@
+ /* Render the read-only status snapshot into buf (never fails). */
+ void leo_hifi_status_string(struct leo_hifi *lh, char *buf, size_t len);
+ 
++int leo_hifi_process_request(struct leo_hifi *lh, const char *mode_str, const char *vol_str, const char *sess_str, const char *gen_str, bool *mode_changed);
++
+ /* Thin wrappers defined in platform.c and called from audio_hw.c. */
+ void platform_leo_hifi_route_enabled(void *platform, int snd_device);
+ void platform_leo_hifi_route_disabled(void *platform, int snd_device);
+diff --git a/hal/msm8974/platform.c b/hal/msm8974/platform.c
+--- a/hal/msm8974/platform.c
++++ b/hal/msm8974/platform.c
+@@ -2899,41 +2899,63 @@
+         goto done;
+     }
+ #ifdef LEO_HIFI_ENABLED
+-    err = str_parms_get_str(parms, LEO_PARAM_KEY_VOLUME, value, len);
+-    if (err >= 0) {
+-        str_parms_del(parms, LEO_PARAM_KEY_VOLUME);
+-        /*
+-         * A failure here must never fail the whole set_parameters call: the
+-         * ES9018 volume is an enhancement, not a precondition for audio.
+-         */
+-        (void) leo_hifi_apply_volume(&my_data->leo, atoi(value));
+-    }
+-
+-    err = str_parms_get_str(parms, LEO_PARAM_KEY_MODE, value, len);
+-    if (err >= 0) {
+-        bool enable = (strncmp(value, "true", sizeof("true")) == 0);
+-
+-        str_parms_del(parms, LEO_PARAM_KEY_MODE);
+-        if (leo_hifi_set_mode(&my_data->leo, enable)) {
+-            audio_usecase_t ids[AUDIO_USECASE_MAX];
+-            struct listnode *node;
+-            struct audio_usecase *uc;
+-            int n = 0, k;
+-
+-            /*
+-             * Snapshot the ids first.  select_devices() calls
+-             * disable_audio_route()/enable_audio_route() and can recurse into
+-             * itself for the capture usecase, so iterating adev->usecase_list
+-             * while calling it would be walking a list the callee may touch.
+-             * adev->lock is already held by adev_set_parameters().
+-             */
+-            list_for_each(node, &my_data->adev->usecase_list) {
+-                uc = node_to_item(node, struct audio_usecase, list);
+-                if (uc->type == PCM_PLAYBACK && n < AUDIO_USECASE_MAX)
+-                    ids[n++] = uc->id;
++    {
++        char *mode_val = NULL, *vol_val = NULL, *sess_val = NULL, *gen_val = NULL;
++        int has_mode = str_parms_get_str(parms, LEO_PARAM_KEY_MODE, value, len) >= 0;
++        if (has_mode) mode_val = strdup(value);
++        
++        int has_vol = str_parms_get_str(parms, LEO_PARAM_KEY_VOLUME, value, len) >= 0;
++        if (has_vol) vol_val = strdup(value);
++        
++        int has_sess = str_parms_get_str(parms, "leo_hifi_session", value, len) >= 0;
++        if (has_sess) sess_val = strdup(value);
++        
++        int has_gen = str_parms_get_str(parms, "leo_hifi_gen", value, len) >= 0;
++        if (has_gen) gen_val = strdup(value);
++
++        if (has_mode || has_vol || has_sess || has_gen) {
++            if (has_mode) str_parms_del(parms, LEO_PARAM_KEY_MODE);
++            if (has_vol) str_parms_del(parms, LEO_PARAM_KEY_VOLUME);
++            if (has_sess) str_parms_del(parms, "leo_hifi_session");
++            if (has_gen) str_parms_del(parms, "leo_hifi_gen");
++
++            bool mode_changed = false;
++            int hifi_ret = ((has_mode && !mode_val) || (has_vol && !vol_val)
++                    || (has_sess && !sess_val) || (has_gen && !gen_val)) ? -ENOMEM
++                    : leo_hifi_process_request(&my_data->leo, mode_val, vol_val,
++                            sess_val, gen_val, &mode_changed);
++            
++            if (mode_val) free(mode_val);
++            if (vol_val) free(vol_val);
++            if (sess_val) free(sess_val);
++            if (gen_val) free(gen_val);
++
++            if (hifi_ret != 0) {
++                ret = hifi_ret;
++                goto done;
+             }
+-            for (k = 0; k < n; k++)
+-                select_devices(my_data->adev, ids[k]);
++
++            if (mode_changed) {
++                audio_usecase_t ids[AUDIO_USECASE_MAX];
++                struct listnode *node;
++                struct audio_usecase *uc;
++                int n = 0, k;
++
++                /*
++                 * Snapshot the ids first.  select_devices() calls
++                 * disable_audio_route()/enable_audio_route() and can recurse into
++                 * itself for the capture usecase, so iterating adev->usecase_list
++                 * while calling it would be walking a list the callee may touch.
++                 * adev->lock is already held by adev_set_parameters().
++                 */
++                list_for_each(node, &my_data->adev->usecase_list) {
++                    uc = node_to_item(node, struct audio_usecase, list);
++                    if (uc->type == PCM_PLAYBACK && n < AUDIO_USECASE_MAX)
++                        ids[n++] = uc->id;
++                }
++                for (k = 0; k < n; k++)
++                    select_devices(my_data->adev, ids[k]);
++            }
+         }
+     }
+ #endif

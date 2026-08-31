@@ -1,0 +1,84 @@
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java
+--- a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java
+@@ -28,6 +28,7 @@
+     // not cancel a HAL write already in progress: its result must be reconciled.
+     private boolean busy, expired, restoreAttempted;
+     private long session, operation;
++    private LeoHifiRequestGate deferredUserRequest; // At most one intent, bound to its original identity/deadline.
+     private final Runnable poll = () -> begin(null);
+     private final Runnable expiry = () -> {
+         if (!state.isFresh(now())) publish(LeoHifiState.unavailable("stale", now()));
+@@ -68,12 +69,18 @@
+     }
+     private void request(int kind, int value) {
+         main.post(() -> {
+-            if (!LeoHifiRequestGate.canStart(state, now(), permitted(), busy, kind, value)) {
++            boolean waitingForRead = busy && !state.pending && !expired;
++            if (!LeoHifiRequestGate.canStart(state, now(), permitted(),
++                    busy && !waitingForRead, kind, value) || deferredUserRequest != null) {
+                 if (!busy) publish(state.withReason("request_rejected"));
+                 return;
+             }
+-            restoreAttempted = true; // Explicit user action supersedes saved intent.
+-            begin(new LeoHifiRequestGate(kind, value, state, now()));
++            restoreAttempted = true;
++            LeoHifiRequestGate intent = new LeoHifiRequestGate(kind, value, state, now());
++            if (waitingForRead) {
++                deferredUserRequest = intent;
++                publish(state.withPending(true, "waiting_for_status"));
++            } else begin(intent);
+         });
+     }
+     private void begin(LeoHifiRequestGate request) {
+@@ -84,6 +91,7 @@
+         final Runnable timeout = () -> {
+             if (busy && operation == id) {
+                 expired = true;
++                deferredUserRequest = null;
+                 publish(LeoHifiState.unavailable("timeout_reconcile_required", now()));
+             }
+         };
+@@ -95,7 +103,7 @@
+                 if (request != null) {
+                     LeoHifiState before = LeoHifiState.parse(AudioSystem.getParameters("leo_hifi_status"), now());
+                     // Recheck immediately before Binder; never replay a queued write after unlock/user changes.
+-                    if (!permitted() || now() - started >= LeoHifiState.MAX_AGE_MS
++                    if (!permitted() || now() - request.startedAt >= LeoHifiState.MAX_AGE_MS
+                             || before.session != request.session || before.generation != request.generation
+                             || !LeoHifiRequestGate.canStart(before, now(), true, false, request.kind, request.value)) {
+                         result = -1;
+@@ -112,12 +120,14 @@
+                 if (id != operation) return;
+                 busy = false;
+                 if (expired || now() - started >= LeoHifiState.MAX_AGE_MS) {
++                    deferredUserRequest = null;
+                     publish(LeoHifiState.unavailable("reconciling", now()));
+                     main.post(poll); return; // Never acknowledge a late operation.
+                 }
+                 boolean changed = snapshot.available && session != 0 && session != snapshot.session;
+                 if (snapshot.available) session = snapshot.session;
+                 if (changed) {
++                    deferredUserRequest = null;
+                     restoreAttempted = false;
+                     publish(LeoHifiState.unavailable("audio_service_restarted", now()));
+                 } else {
+@@ -125,6 +135,18 @@
+                     if (accepted && request.kind == LeoHifiRequestGate.MODE)
+                         prefs.edit().putBoolean(SAVED, request.value == 1).apply();
+                     publish(request != null && !accepted ? snapshot.withReason("request_failed") : snapshot);
++                    if (request == null && deferredUserRequest != null) {
++                        LeoHifiRequestGate queued = deferredUserRequest;
++                        deferredUserRequest = null;
++                        if (queued.session == snapshot.session && queued.generation == snapshot.generation
++                                && now() >= queued.startedAt
++                                && now() - queued.startedAt < LeoHifiState.MAX_AGE_MS
++                                && LeoHifiRequestGate.canStart(snapshot, now(), permitted(), false,
++                                        queued.kind, queued.value)) {
++                            begin(queued); return;
++                        }
++                        publish(snapshot.withReason("request_rejected"));
++                    }
+                     if (request == null && snapshot.available && snapshot.supported
+                             && !restoreAttempted && permitted()) {
+                         restoreAttempted = true;

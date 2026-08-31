@@ -1,0 +1,144 @@
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java
+--- a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java
+@@ -96,7 +96,7 @@
+                     LeoHifiState before = LeoHifiState.parse(AudioSystem.getParameters("leo_hifi_status"), now());
+                     // Recheck immediately before Binder; never replay a queued write after unlock/user changes.
+                     if (!permitted() || now() - started >= LeoHifiState.MAX_AGE_MS
+-                            || before.session != request.session || before.generation < request.generation
++                            || before.session != request.session || before.generation != request.generation
+                             || !LeoHifiRequestGate.canStart(before, now(), true, false, request.kind, request.value)) {
+                         result = -1;
+                     } else result = AudioSystem.setParameters(request.parameter());
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiRequestGate.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiRequestGate.java
+--- a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiRequestGate.java
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiRequestGate.java
+@@ -16,13 +16,13 @@
+                 || (kind == VOLUME && value >= 0 && value <= 60 && s.active));
+     }
+     public String parameter() {
+-        return kind == MODE ? "leo_hifi_mode=" + (value == 1 ? "true" : "false")
+-                : "leo_hifi_volume=" + value;
++        return (kind == MODE ? "leo_hifi_mode=" + (value == 1 ? "true" : "false")
++                : "leo_hifi_volume=" + value) + ";leo_hifi_session=" + session + ";leo_hifi_gen=" + generation;
+     }
+     public boolean accepts(int result, LeoHifiState after, long now) {
+         if (result != 0 || now < startedAt || now - startedAt >= LeoHifiState.MAX_AGE_MS
+                 || !after.available || !after.supported || !after.isFresh(now)
+-                || after.session != session || after.generation < generation
++                || after.session != session || (kind == VOLUME ? after.generation != generation : after.generation < generation)
+                 || "hal_error".equals(after.reason)) return false;
+         if (kind == MODE) return after.requested == (value == 1)
+                 && (value == 1 || (!after.active && ("idle".equals(after.effective)
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiState.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiState.java
+--- a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiState.java
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiState.java
+@@ -80,7 +80,7 @@
+         }
+ 
+         try {
+-            if (!"2".equals(map.get("schema"))) return unavailable("invalid_schema", now);
++            if (!"3".equals(map.get("schema"))) return unavailable("invalid_schema", now);
+ 
+             String sessionStr = map.get("session");
+             if (sessionStr == null) return unavailable("missing_session", now);
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiVolumeDialog.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiVolumeDialog.java
+--- a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiVolumeDialog.java
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiVolumeDialog.java
+@@ -16,7 +16,7 @@
+     private SeekBar slider;
+     private Button apply;
+     private TextView readback, status;
+-    private boolean touched;
++    private final LeoHifiVolumeSelection selection = new LeoHifiVolumeSelection();
+     public LeoHifiVolumeDialog(Context context, LeoHifiController controller) {
+         super(context); this.controller = controller;
+     }
+@@ -38,16 +38,18 @@
+         super.onCreate(savedInstanceState);
+         slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+             public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
+-                if (fromUser) { touched = true; onStateChanged(controller.getState()); }
++                selection.onProgressChanged(progress, fromUser);
++                if (fromUser) onStateChanged(controller.getState());
+             }
+             public void onStartTrackingTouch(SeekBar bar) {}
+             public void onStopTrackingTouch(SeekBar bar) {}
+         });
+         apply.setOnClickListener(view -> {
+             LeoHifiState s = controller.getState();
+-            if (touched && s.active && !s.pending && s.isFresh(SystemClock.elapsedRealtime())) {
+-                touched = false; apply.setEnabled(false);
+-                controller.requestVolume(slider.getProgress()); // zero is valid, NOT mute
++            long now = SystemClock.elapsedRealtime();
++            if (selection.canApply(s, now)) {
++                selection.onApply(); apply.setEnabled(false);
++                controller.requestVolume(selection.getProgress()); // zero is valid, NOT mute
+             }
+         });
+         controller.addCallback(this);
+@@ -56,9 +58,13 @@
+     }
+     @Override public void onStateChanged(LeoHifiState s) {
+         if (slider == null) return;
+-        boolean ready = s.available && s.supported && s.active && !s.pending
+-                && s.isFresh(SystemClock.elapsedRealtime());
+-        slider.setEnabled(ready); apply.setEnabled(ready && touched);
++        long now = SystemClock.elapsedRealtime();
++        selection.onStateChanged(s, now);
++        if (slider.getProgress() != selection.getProgress()) {
++            slider.setProgress(selection.getProgress());
++        }
++        boolean ready = s.available && s.supported && s.active && !s.pending && s.isFresh(now);
++        slider.setEnabled(ready); apply.setEnabled(selection.canApply(s, now));
+         status.setText(s.pending ? R.string.leo_hifi_waiting
+                 : "request_failed".equals(s.reason) || "request_rejected".equals(s.reason)
+                 ? R.string.leo_hifi_error : ready ? R.string.leo_hifi_active : R.string.leo_hifi_not_active);
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiVolumeSelection.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiVolumeSelection.java
+new file mode 100644
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiVolumeSelection.java
+@@ -0,0 +1,43 @@
++package com.android.systemui.leo;
++
++public final class LeoHifiVolumeSelection {
++    private boolean touched;
++    private int progress;
++    private long lastSession = -1;
++    private long lastGen = -1;
++
++    public void onProgressChanged(int newProgress, boolean fromUser) {
++        if (fromUser) {
++            touched = true;
++            progress = newProgress;
++        }
++    }
++
++    public void onStateChanged(LeoHifiState s, long now) {
++        boolean ready = s.available && s.supported && s.active && !s.pending && s.isFresh(now);
++        if (!ready || s.session != lastSession || s.generation != lastGen) {
++            touched = false;
++            lastSession = s.session;
++            lastGen = s.generation;
++        }
++        if (ready && !touched) {
++            progress = s.volumeUser;
++        }
++    }
++
++    public boolean canApply(LeoHifiState s, long now) {
++        return touched && s.session == lastSession && s.generation == lastGen && s.available && s.supported && s.active && !s.pending && s.isFresh(now);
++    }
++
++    public void onApply() {
++        touched = false;
++    }
++
++    public int getProgress() {
++        return progress;
++    }
++
++    public boolean isTouched() {
++        return touched;
++    }
++}

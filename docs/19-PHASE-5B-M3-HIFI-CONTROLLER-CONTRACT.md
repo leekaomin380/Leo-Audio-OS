@@ -44,6 +44,12 @@
 
 ### 1.3 M3 非目标（明确不做）
 
+> **2026-08-31 用户需求增补**：HiFi 开关和通知栏 `HIFI` 标识进入 M3 基础版范围，
+> 具体见 `reviews/2026-08-31-hifi-switch-notification-scope.md`。
+> 旧文中的“界面扩展不做”“UI 无写能力”不再禁止界面通过受权限保护的接口发送启停意图；
+> **UI 不直接写 mixer/property、HAL 唯一硬件写入者、观察接口只读**仍有效。
+> 此增补仅登记需求与验收边界，不代表实现、设备部署或扩大写入授权。
+
 * 44.1 kHz bit-perfect（归 M3.5）；
 * 强制 DIRECT / offload 通路；
 * framework 大规模修改；
@@ -710,3 +716,23 @@ feature-OFF 三层等价性、以及"如何证明产物来自最新补丁"的 P1
 > 含 `$(LOCAL_PATH)/$(AUDIO_PLATFORM)`，且 `LEO_HIFI_ENABLED` 只在
 > `AUDIO_PLATFORM = msm8974` 时定义），但违反本树"platform 层导出走 `platform_api.h`"
 > 的约定。**须在 L3 完成前以补丁 0006 修正。**
+
+
+## 2026-08-31 SystemUI schema2 实现增量（本地验证，未部署）
+
+实现见 `patches/phase5b-hifi-ui/`；验收见 `docs/reviews/2026-08-31-hifi-ui-implementation-acceptance.md`。原五补丁保持冻结，不改变 M3 设备验收状态。
+
+- 实际参数：`leo_hifi_mode=true|false`、`leo_hifi_volume=0..60`、`leo_hifi_status`。
+- 标识只认可 schema2 的 HAL session、路由 gen、新鲜 live/flow；旧格式不能点亮标识。
+- HAL 实例内 session 稳定；路由变更作废独立 flow token，流回调不反向获取 adev 锁。
+- 首版只认可 MM1 deep-buffer S16 PCM 推进；后端固定 S24_LE/KHZ_48，不构成 SRC/bit-perfect 证明。
+- 主用户 SystemUI 原生 hifi 磁贴、leo_hifi 图标槽及长按 DAC 音量面板已实现；独立 Settings 入口未接入。
+- 217 项主机断言、接口编译、诊断 ELF 链接通过，不替代完整 SystemUI 构建与真机验收。
+
+## 2026-08-31 schema3最终增补
+
+当前审定：HOST_DIAGNOSTIC_PASS / NO_GO_TARGET / NO_GO_DEVICE，见 reviews/2026-08-31-hifi-schema3-eight-way-final.md。
+
+状态schema=3；写入必须仅含一个leo_hifi_mode=true|false或leo_hifi_volume=0..60，并携带leo_hifi_session（正63位十进制）及leo_hifi_gen（非负63位十进制）。HAL在adev锁内验证同会话同路由代次，异常-EINVAL、过期-EAGAIN，拒绝零硬件/属性写入；音量还要求当前requested/ACTIVE/live/flow、无fail。0不是静音，映射213；现场基线205，上限237不变。前端流证据只MM1，不能把其它MM活动与旧MM1证据拼接。
+
+SystemUI允许poll期间最多保留一个绑定原身份和截止时间的显式意图，过期/锁屏/路由或会话变化后不重放。写前MODE与VOLUME均要求gen完全匹配；只有MODE写后确认允许自身route代次递增。旧schema2写请求不含token，将被schema3 HAL拒绝，更新必须配对。无物理音量键接入、无SRC突破。

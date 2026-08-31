@@ -1,0 +1,745 @@
+diff --git a/packages/SystemUI/AndroidManifest.xml b/packages/SystemUI/AndroidManifest.xml
+--- a/packages/SystemUI/AndroidManifest.xml
++++ b/packages/SystemUI/AndroidManifest.xml
+@@ -51,6 +51,7 @@
+     <uses-permission android:name="android.permission.STATUS_BAR" />
+     <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+     <uses-permission android:name="android.permission.REMOTE_AUDIO_PLAYBACK" />
++    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+ 
+     <uses-permission android:name="android.permission.MANAGE_USERS" />
+     <uses-permission android:name="android.permission.READ_PROFILE" />
+diff --git a/packages/SystemUI/res/drawable/ic_leo_hifi.xml b/packages/SystemUI/res/drawable/ic_leo_hifi.xml
+new file mode 100644
+--- /dev/null
++++ b/packages/SystemUI/res/drawable/ic_leo_hifi.xml
+@@ -0,0 +1,10 @@
++<?xml version="1.0" encoding="utf-8"?>
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="24dp"
++    android:height="24dp"
++    android:viewportWidth="24"
++    android:viewportHeight="24">
++    <path
++        android:fillColor="#FFFFFFFF"
++        android:pathData="M2,7v10h2v-4h2v4h2V7H6v4H4V7H2z M10,7v10h2V7h-2z M14,7v10h2v-4h3v-2h-3V9h3V7h-5z M20,7v10h2V7h-2z" />
++</vector>
+diff --git a/packages/SystemUI/res/values/config.xml b/packages/SystemUI/res/values/config.xml
+--- a/packages/SystemUI/res/values/config.xml
++++ b/packages/SystemUI/res/values/config.xml
+@@ -109,7 +109,7 @@
+ 
+     <!-- The default tiles to display in QuickSettings -->
+     <string name="quick_settings_tiles_default" translatable="false">
+-        wifi,bt,dnd,flashlight,rotation,battery,cell,airplane,screenshot
++        wifi,bt,dnd,flashlight,rotation,battery,cell,airplane,screenshot,hifi
+     </string>
+ 
+     <!-- The minimum number of tiles to display in QuickSettings -->
+@@ -117,7 +117,7 @@
+ 
+     <!-- Tiles native to System UI. Order should match "quick_settings_tiles_default" -->
+     <string name="quick_settings_tiles_stock" translatable="false">
+-        wifi,cell,battery,dnd,flashlight,screenshot,rotation,bt,airplane,nfc,location,hotspot,inversion,saver,dark,work,cast,night,adb_network,ambient_display,caffeine,heads_up,livedisplay,aod,reading_mode,sync,usb_tether,volume_panel,vpn,profiles,powershare
++        wifi,cell,battery,dnd,flashlight,screenshot,rotation,bt,airplane,nfc,location,hotspot,inversion,saver,dark,work,cast,night,adb_network,ambient_display,caffeine,heads_up,livedisplay,aod,reading_mode,sync,usb_tether,volume_panel,vpn,profiles,powershare,hifi
+     </string>
+ 
+     <!-- The tiles to display in QuickSettings -->
+diff --git a/packages/SystemUI/res/values/leo_hifi_strings.xml b/packages/SystemUI/res/values/leo_hifi_strings.xml
+new file mode 100644
+--- /dev/null
++++ b/packages/SystemUI/res/values/leo_hifi_strings.xml
+@@ -0,0 +1,15 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="leo_hifi_label">HIFI</string>
++    <string name="leo_hifi_unavailable">Backend unavailable</string>
++    <string name="leo_hifi_waiting">Waiting for confirmation</string>
++    <string name="leo_hifi_active">ESS active · 48 kHz</string>
++    <string name="leo_hifi_error">Request or route error</string>
++    <string name="leo_hifi_volume_title">HiFi DAC volume</string>
++    <string name="leo_hifi_apply">Apply selected volume</string>
++    <string name="leo_hifi_not_active">Play audio through HiFi to adjust</string>
++    <string name="leo_hifi_standby">Enabled · standby</string>
++    <string name="leo_hifi_off">Off</string>
++    <string name="leo_hifi_volume_warning">0 is not mute. Moving the slider does not apply volume. Applying any value may raise the factory level. Start low.</string>
++    <string name="leo_hifi_volume_readback">Selected: %1$d / 60 · DAC readback: %2$d / %3$d</string>
++</resources>
+diff --git a/packages/SystemUI/res/values-zh-rCN/leo_hifi_strings.xml b/packages/SystemUI/res/values-zh-rCN/leo_hifi_strings.xml
+new file mode 100644
+--- /dev/null
++++ b/packages/SystemUI/res/values-zh-rCN/leo_hifi_strings.xml
+@@ -0,0 +1,15 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="leo_hifi_label">HIFI</string>
++    <string name="leo_hifi_unavailable">后端不可用</string>
++    <string name="leo_hifi_waiting">等待确认</string>
++    <string name="leo_hifi_active">ESS 播放中 · 48 kHz</string>
++    <string name="leo_hifi_error">请求或路由异常</string>
++    <string name="leo_hifi_volume_title">HiFi DAC 音量</string>
++    <string name="leo_hifi_apply">应用所选音量</string>
++    <string name="leo_hifi_not_active">通过 HiFi 播放后可调节</string>
++    <string name="leo_hifi_standby">已开启 · 待机</string>
++    <string name="leo_hifi_off">已关闭</string>
++    <string name="leo_hifi_volume_warning">0 不是静音。拖动滑块不会改变音量。应用任意数值都可能高于出厂音量，请从低音量开始。</string>
++    <string name="leo_hifi_volume_readback">选择：%1$d / 60 · DAC 回读：%2$d / %3$d</string>
++</resources>
+diff --git a/packages/SystemUI/src/com/android/systemui/SystemUIApplication.java b/packages/SystemUI/src/com/android/systemui/SystemUIApplication.java
+--- a/packages/SystemUI/src/com/android/systemui/SystemUIApplication.java
++++ b/packages/SystemUI/src/com/android/systemui/SystemUIApplication.java
+@@ -281,6 +281,9 @@
+                 }, OverlayPlugin.class, true /* Allow multiple plugins */);
+ 
+         mServicesStarted = true;
++        if (Process.myUserHandle().equals(UserHandle.SYSTEM)) {
++            com.android.systemui.leo.LeoHifiStatusIcon.start(this);
++        }
+     }
+ 
+     @Override
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java
+new file mode 100644
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiController.java
+@@ -0,0 +1,151 @@
++package com.android.systemui.leo;
++
++import android.app.ActivityManager;
++import android.app.KeyguardManager;
++import android.content.Context;
++import android.content.SharedPreferences;
++import android.media.AudioSystem;
++import android.os.Build;
++import android.os.Handler;
++import android.os.HandlerThread;
++import android.os.Looper;
++import android.os.SystemClock;
++import android.os.UserManager;
++import android.util.Log;
++import java.util.ArrayList;
++
++/** SystemUI-owned controller. HAL is the only mixer writer. No exported entry point. */
++public final class LeoHifiController {
++    private static LeoHifiController sInstance;
++    private static final String SAVED = "confirmed_enable";
++    private final Handler main = new Handler(Looper.getMainLooper());
++    private final Handler worker;
++    private final Context context;
++    private final SharedPreferences prefs;
++    private final ArrayList<Callback> callbacks = new ArrayList<>();
++    private volatile LeoHifiState state = LeoHifiState.unavailable("initializing", now());
++    // Main-thread confined. A hung Binder occupies ONE worker. A timeout does
++    // not cancel a HAL write already in progress: its result must be reconciled.
++    private boolean busy, expired, restoreAttempted;
++    private long session, operation;
++    private final Runnable poll = () -> begin(null);
++    private final Runnable expiry = () -> {
++        if (!state.isFresh(now())) publish(LeoHifiState.unavailable("stale", now()));
++    };
++    public interface Callback { void onStateChanged(LeoHifiState state); }
++    public static synchronized LeoHifiController get(Context context) {
++        if (sInstance == null) sInstance = new LeoHifiController(context.getApplicationContext());
++        return sInstance;
++    }
++    private LeoHifiController(Context context) {
++        this.context = context;
++        prefs = context.createDeviceProtectedStorageContext()
++                .getSharedPreferences("leo_hifi", Context.MODE_PRIVATE);
++        HandlerThread thread = new HandlerThread("LeoHifi");
++        thread.start(); worker = new Handler(thread.getLooper());
++        if ("leo".equals(Build.DEVICE) && ownerProcess()) main.post(poll);
++    }
++    private static long now() { return SystemClock.elapsedRealtime(); }
++    public LeoHifiState getState() { return state; }
++    public void addCallback(Callback cb) {
++        main.post(() -> { if (!callbacks.contains(cb)) callbacks.add(cb); cb.onStateChanged(state); });
++    }
++    public void removeCallback(Callback cb) { main.post(() -> callbacks.remove(cb)); }
++    public void refresh() { main.post(() -> begin(null)); }
++    public void requestEnabled(boolean enabled) { request(LeoHifiRequestGate.MODE, enabled ? 1 : 0); }
++    public void requestVolume(int value) { request(LeoHifiRequestGate.VOLUME, value); }
++    private static boolean ownerProcess() {
++        return android.os.Process.myUserHandle().equals(android.os.UserHandle.SYSTEM);
++    }
++    private boolean permitted() {
++        try {
++            KeyguardManager keyguard = context.getSystemService(KeyguardManager.class);
++            UserManager users = context.getSystemService(UserManager.class);
++            return ownerProcess() && "leo".equals(Build.DEVICE) && ActivityManager.getCurrentUser() == 0
++                    && users != null && users.isUserUnlocked()
++                    && keyguard != null && !keyguard.isDeviceLocked();
++        } catch (RuntimeException e) { return false; }
++    }
++    private void request(int kind, int value) {
++        main.post(() -> {
++            if (!LeoHifiRequestGate.canStart(state, now(), permitted(), busy, kind, value)) {
++                if (!busy) publish(state.withReason("request_rejected"));
++                return;
++            }
++            restoreAttempted = true; // Explicit user action supersedes saved intent.
++            begin(new LeoHifiRequestGate(kind, value, state, now()));
++        });
++    }
++    private void begin(LeoHifiRequestGate request) {
++        if (busy || !ownerProcess() || !"leo".equals(Build.DEVICE)) return;
++        main.removeCallbacks(poll); busy = true; expired = false;
++        final long id = ++operation, started = now();
++        if (request != null) publish(state.withPending(true, "requesting"));
++        final Runnable timeout = () -> {
++            if (busy && operation == id) {
++                expired = true;
++                publish(LeoHifiState.unavailable("timeout_reconcile_required", now()));
++            }
++        };
++        main.postDelayed(timeout, LeoHifiState.MAX_AGE_MS);
++        worker.post(() -> {
++            int result = 0;
++            LeoHifiState after;
++            try {
++                if (request != null) {
++                    LeoHifiState before = LeoHifiState.parse(AudioSystem.getParameters("leo_hifi_status"), now());
++                    // Recheck immediately before Binder; never replay a queued write after unlock/user changes.
++                    if (!permitted() || now() - started >= LeoHifiState.MAX_AGE_MS
++                            || before.session != request.session || before.generation < request.generation
++                            || !LeoHifiRequestGate.canStart(before, now(), true, false, request.kind, request.value)) {
++                        result = -1;
++                    } else result = AudioSystem.setParameters(request.parameter());
++                }
++                after = LeoHifiState.parse(AudioSystem.getParameters("leo_hifi_status"), now());
++            } catch (RuntimeException | LinkageError e) {
++                result = -1; after = LeoHifiState.unavailable("audio_service_error", now());
++            }
++            final int code = result;
++            final LeoHifiState snapshot = after;
++            main.post(() -> {
++                main.removeCallbacks(timeout);
++                if (id != operation) return;
++                busy = false;
++                if (expired || now() - started >= LeoHifiState.MAX_AGE_MS) {
++                    publish(LeoHifiState.unavailable("reconciling", now()));
++                    main.post(poll); return; // Never acknowledge a late operation.
++                }
++                boolean changed = snapshot.available && session != 0 && session != snapshot.session;
++                if (snapshot.available) session = snapshot.session;
++                if (changed) {
++                    restoreAttempted = false;
++                    publish(LeoHifiState.unavailable("audio_service_restarted", now()));
++                } else {
++                    boolean accepted = request != null && request.accepts(code, snapshot, now());
++                    if (accepted && request.kind == LeoHifiRequestGate.MODE)
++                        prefs.edit().putBoolean(SAVED, request.value == 1).apply();
++                    publish(request != null && !accepted ? snapshot.withReason("request_failed") : snapshot);
++                    if (request == null && snapshot.available && snapshot.supported
++                            && !restoreAttempted && permitted()) {
++                        restoreAttempted = true;
++                        boolean saved = prefs.getBoolean(SAVED, false);
++                        if (snapshot.requested != saved) {
++                            begin(new LeoHifiRequestGate(LeoHifiRequestGate.MODE, saved ? 1 : 0, snapshot, now()));
++                            return;
++                        }
++                    }
++                }
++                main.postDelayed(poll, 1000);
++            });
++        });
++    }
++    private void publish(LeoHifiState snapshot) {
++        state = snapshot; main.removeCallbacks(expiry);
++        if (snapshot.available) main.postDelayed(expiry,
++                Math.max(0, snapshot.observedAtElapsedMs + LeoHifiState.MAX_AGE_MS + 1 - now()));
++        for (Callback cb : new ArrayList<>(callbacks)) {
++            try { cb.onStateChanged(snapshot); }
++            catch (RuntimeException e) { Log.w("LeoHifi", "UI callback failed", e); }
++        }
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiRequestGate.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiRequestGate.java
+new file mode 100644
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiRequestGate.java
+@@ -0,0 +1,34 @@
++package com.android.systemui.leo;
++
++/** Pure Java transaction rules shared by the Android adapter and host tests. */
++public final class LeoHifiRequestGate {
++    public static final int MODE = 1, VOLUME = 2;
++    public final int kind, value;
++    public final long session, generation, startedAt;
++    public LeoHifiRequestGate(int kind, int value, LeoHifiState before, long now) {
++        this.kind = kind; this.value = value;
++        session = before.session; generation = before.generation; startedAt = now;
++    }
++    public static boolean canStart(LeoHifiState s, long now, boolean permitted,
++            boolean busy, int kind, int value) {
++        return permitted && !busy && s.available && s.supported && !s.pending
++                && s.isFresh(now) && ((kind == MODE && (value == 0 || value == 1))
++                || (kind == VOLUME && value >= 0 && value <= 60 && s.active));
++    }
++    public String parameter() {
++        return kind == MODE ? "leo_hifi_mode=" + (value == 1 ? "true" : "false")
++                : "leo_hifi_volume=" + value;
++    }
++    public boolean accepts(int result, LeoHifiState after, long now) {
++        if (result != 0 || now < startedAt || now - startedAt >= LeoHifiState.MAX_AGE_MS
++                || !after.available || !after.supported || !after.isFresh(now)
++                || after.session != session || after.generation < generation
++                || "hal_error".equals(after.reason)) return false;
++        if (kind == MODE) return after.requested == (value == 1)
++                && (value == 1 || (!after.active && ("idle".equals(after.effective)
++                    || "speaker".equals(after.effective) || "wired_standard".equals(after.effective))));
++        int expected = 213 + (value * 2) / 5;
++        return after.active && after.volumeUser == value
++                && after.volumeLeft == expected && after.volumeRight == expected;
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiState.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiState.java
+new file mode 100644
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiState.java
+@@ -0,0 +1,174 @@
++package com.android.systemui.leo;
++
++import java.util.HashMap;
++import java.util.Map;
++
++public final class LeoHifiState {
++    public static final long MAX_AGE_MS = 3000;
++
++    public final boolean available;
++    public final boolean supported;
++    public final boolean requested;
++    public final boolean active;
++    public final boolean pending;
++    public final int volumeUser;
++    public final int volumeLeft;
++    public final int volumeRight;
++    public final long session;
++    public final long generation;
++    public final long observedAtElapsedMs;
++    public final String effective;
++    public final String reason;
++    public final String backend;
++
++    private LeoHifiState(boolean available, boolean supported, boolean requested,
++                         boolean active, boolean pending, int volumeUser,
++                         int volumeLeft, int volumeRight, long session,
++                         long generation, long observedAtElapsedMs,
++                         String effective, String reason, String backend) {
++        this.available = available;
++        this.supported = supported;
++        this.requested = requested;
++        this.active = active;
++        this.pending = pending;
++        this.volumeUser = volumeUser;
++        this.volumeLeft = volumeLeft;
++        this.volumeRight = volumeRight;
++        this.session = session;
++        this.generation = generation;
++        this.observedAtElapsedMs = observedAtElapsedMs;
++        this.effective = effective != null ? effective : "idle";
++        this.reason = reason != null ? reason : "";
++        this.backend = backend != null ? backend : "unconfirmed";
++    }
++
++    public static LeoHifiState unavailable(String reason, long now) {
++        return new LeoHifiState(false, false, false, false, false, 0, 0, 0, -1, -1, now, "idle", reason, "unconfirmed");
++    }
++
++    public static LeoHifiState parse(String wire, long now) {
++        if (wire == null || wire.length() == 0 || wire.length() > 2048) {
++            return unavailable("empty_or_oversize", now);
++        }
++
++        String payload = wire;
++        if (payload.startsWith("leo_hifi_status=")) {
++            payload = payload.substring("leo_hifi_status=".length());
++        }
++
++        if (payload.trim().isEmpty()) {
++            return unavailable("empty_payload", now);
++        }
++
++        Map<String, String> map = new HashMap<>();
++        String[] pairs = payload.split(";", -1);
++        for (String pair : pairs) {
++            if (pair.isEmpty()) {
++                return unavailable("empty_pair", now);
++            }
++            int eq = pair.indexOf('=');
++            if (eq <= 0 || eq == pair.length() - 1 || pair.indexOf('=', eq + 1) >= 0) {
++                return unavailable("malformed_pair", now);
++            }
++            String k = pair.substring(0, eq);
++            String v = pair.substring(eq + 1);
++            if (!k.matches("[a-zA-Z0-9_]+") || !v.matches("[a-zA-Z0-9_./x-]+")) return unavailable("invalid_token", now);
++            if (map.containsKey(k)) {
++                return unavailable("duplicate_key", now);
++            }
++            map.put(k, v);
++        }
++
++        try {
++            if (!"2".equals(map.get("schema"))) return unavailable("invalid_schema", now);
++
++            String sessionStr = map.get("session");
++            if (sessionStr == null) return unavailable("missing_session", now);
++            if (!sessionStr.matches("[0-9]+")) return unavailable("invalid_session", now);
++            long session = Long.parseLong(sessionStr);
++            if (session <= 0) return unavailable("invalid_session", now);
++
++            String genStr = map.get("gen");
++            if (genStr == null) return unavailable("missing_gen", now);
++            if (!genStr.matches("[0-9]+")) return unavailable("invalid_gen", now);
++            long gen = Long.parseLong(genStr);
++            if (gen < 0) return unavailable("invalid_gen", now);
++
++            String suppStr = map.get("supported");
++            if (!"0".equals(suppStr) && !"1".equals(suppStr)) return unavailable("invalid_supported", now);
++            boolean supported = "1".equals(suppStr);
++
++            String reqStr = map.get("requested");
++            if (!"hifi".equals(reqStr) && !"standard".equals(reqStr)) return unavailable("invalid_requested", now);
++            boolean requested = "hifi".equals(reqStr);
++
++            String effStr = map.get("effective");
++            if (!"idle".equals(effStr) && !"speaker".equals(effStr) &&
++                !"wired_standard".equals(effStr) && !"arming".equals(effStr) &&
++                !"hifi_active".equals(effStr) && !"hifi_degraded".equals(effStr) &&
++                !"error_fallback".equals(effStr)) {
++                return unavailable("invalid_effective", now);
++            }
++
++            String liveStr = map.get("live");
++            if (!"0".equals(liveStr) && !"1".equals(liveStr)) return unavailable("invalid_live", now);
++            boolean live = "1".equals(liveStr);
++
++            String flowStr = map.get("flow");
++            if (!"0".equals(flowStr) && !"1".equals(flowStr)) return unavailable("invalid_flow", now);
++            boolean flow = "1".equals(flowStr);
++
++            String vlStr = map.get("vol_ctl_l");
++            String vrStr = map.get("vol_ctl_r");
++            if (vlStr == null || vrStr == null) return unavailable("missing_vol_ctl", now);
++            int volL = Integer.parseInt(vlStr);
++            int volR = Integer.parseInt(vrStr);
++
++            String vuStr = map.get("vol_user");
++            if (vuStr == null) return unavailable("missing_vol_user", now);
++            int volUser = Integer.parseInt(vuStr);
++            if (volUser < 0 || volUser > 60) return unavailable("invalid_vol_user", now);
++
++            String backendStr = map.get("backend");
++            if (!"S24_LE/KHZ_48".equals(backendStr) && !"unconfirmed".equals(backendStr)) {
++                return unavailable("invalid_backend", now);
++            }
++
++            String failStr = map.get("fail");
++            if (failStr == null) return unavailable("missing_fail", now);
++            long fail = Long.parseLong(failStr);
++            if (fail < 0) return unavailable("invalid_fail", now);
++
++            boolean active = supported &&
++                    "hifi_active".equals(effStr) &&
++                    live &&
++                    flow &&
++                    (volL == volR) &&
++                    (volL >= 205 && volL <= 237) &&
++                    "S24_LE/KHZ_48".equals(backendStr) &&
++                    (fail == 0);
++
++            return new LeoHifiState(true, supported, requested, active, false,
++                    volUser, volL, volR, session, gen, now, effStr, fail == 0 ? "parsed" : "hal_error", backendStr);
++        } catch (NumberFormatException e) {
++            return unavailable("number_format_error", now);
++        }
++    }
++
++    public boolean isFresh(long now) {
++        long age = now - observedAtElapsedMs;
++        return age >= 0 && age <= MAX_AGE_MS;
++    }
++
++    public LeoHifiState withPending(boolean value, String reason) {
++        return new LeoHifiState(available, supported, requested, active, value,
++                volumeUser, volumeLeft, volumeRight, session, generation,
++                observedAtElapsedMs, effective, reason, backend);
++    }
++
++    public LeoHifiState withReason(String newReason) {
++        return new LeoHifiState(available, supported, requested, active, pending,
++                volumeUser, volumeLeft, volumeRight, session, generation,
++                observedAtElapsedMs, effective, newReason, backend);
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiStatusIcon.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiStatusIcon.java
+new file mode 100644
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiStatusIcon.java
+@@ -0,0 +1,40 @@
++package com.android.systemui.leo;
++
++import android.content.Context;
++import android.os.SystemClock;
++import com.android.systemui.Dependency;
++import com.android.systemui.R;
++import com.android.systemui.statusbar.phone.StatusBarIconController;
++
++public class LeoHifiStatusIcon implements LeoHifiController.Callback {
++    private static final String SLOT = "leo_hifi";
++    private static LeoHifiStatusIcon sInstance;
++
++    private final Context mContext;
++    private final StatusBarIconController mIconController;
++    private final LeoHifiController mHifiController;
++
++    private LeoHifiStatusIcon(Context context) {
++        mContext = context.getApplicationContext();
++        mIconController = Dependency.get(StatusBarIconController.class);
++        mHifiController = LeoHifiController.get(mContext);
++
++        mIconController.setIcon(SLOT, R.drawable.ic_leo_hifi, mContext.getString(R.string.leo_hifi_label));
++        mIconController.setIconVisibility(SLOT, false);
++
++        mHifiController.addCallback(this);
++        onStateChanged(mHifiController.getState());
++    }
++
++    public static synchronized void start(Context context) {
++        if (sInstance == null && "leo".equals(android.os.Build.DEVICE)) {
++            sInstance = new LeoHifiStatusIcon(context);
++        }
++    }
++
++    @Override
++    public void onStateChanged(LeoHifiState state) {
++        boolean visible = state != null && state.active && state.isFresh(SystemClock.elapsedRealtime());
++        mIconController.setIconVisibility(SLOT, visible);
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/leo/LeoHifiVolumeDialog.java b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiVolumeDialog.java
+new file mode 100644
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/leo/LeoHifiVolumeDialog.java
+@@ -0,0 +1,68 @@
++package com.android.systemui.leo;
++
++import android.content.Context;
++import android.os.Bundle;
++import android.os.SystemClock;
++import android.widget.Button;
++import android.widget.LinearLayout;
++import android.widget.SeekBar;
++import android.widget.TextView;
++import com.android.systemui.R;
++import com.android.systemui.statusbar.phone.SystemUIDialog;
++
++/** Explicit DAC-volume apply. No write on open, drag, close, reconnect or boot. */
++public final class LeoHifiVolumeDialog extends SystemUIDialog implements LeoHifiController.Callback {
++    private final LeoHifiController controller;
++    private SeekBar slider;
++    private Button apply;
++    private TextView readback, status;
++    private boolean touched;
++    public LeoHifiVolumeDialog(Context context, LeoHifiController controller) {
++        super(context); this.controller = controller;
++    }
++    @Override protected void onCreate(Bundle savedInstanceState) {
++        setTitle(R.string.leo_hifi_volume_title);
++        LinearLayout layout = new LinearLayout(getContext());
++        layout.setOrientation(LinearLayout.VERTICAL);
++        int padding = (int)(24 * getContext().getResources().getDisplayMetrics().density + 0.5f);
++        layout.setPadding(padding, padding, padding, padding);
++        TextView warning = new TextView(getContext());
++        warning.setText(R.string.leo_hifi_volume_warning); layout.addView(warning);
++        status = new TextView(getContext()); layout.addView(status);
++        readback = new TextView(getContext()); layout.addView(readback);
++        slider = new SeekBar(getContext()); slider.setMax(60);
++        slider.setContentDescription(getContext().getString(R.string.leo_hifi_volume_title));
++        slider.setProgress(controller.getState().volumeUser); layout.addView(slider);
++        apply = new Button(getContext()); apply.setText(R.string.leo_hifi_apply); layout.addView(apply);
++        setView(layout); setNegativeButton(android.R.string.cancel, (dialog, which) -> dismiss());
++        super.onCreate(savedInstanceState);
++        slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
++            public void onProgressChanged(SeekBar bar, int progress, boolean fromUser) {
++                if (fromUser) { touched = true; onStateChanged(controller.getState()); }
++            }
++            public void onStartTrackingTouch(SeekBar bar) {}
++            public void onStopTrackingTouch(SeekBar bar) {}
++        });
++        apply.setOnClickListener(view -> {
++            LeoHifiState s = controller.getState();
++            if (touched && s.active && !s.pending && s.isFresh(SystemClock.elapsedRealtime())) {
++                touched = false; apply.setEnabled(false);
++                controller.requestVolume(slider.getProgress()); // zero is valid, NOT mute
++            }
++        });
++        controller.addCallback(this);
++        setOnDismissListener(dialog -> controller.removeCallback(this));
++        onStateChanged(controller.getState());
++    }
++    @Override public void onStateChanged(LeoHifiState s) {
++        if (slider == null) return;
++        boolean ready = s.available && s.supported && s.active && !s.pending
++                && s.isFresh(SystemClock.elapsedRealtime());
++        slider.setEnabled(ready); apply.setEnabled(ready && touched);
++        status.setText(s.pending ? R.string.leo_hifi_waiting
++                : "request_failed".equals(s.reason) || "request_rejected".equals(s.reason)
++                ? R.string.leo_hifi_error : ready ? R.string.leo_hifi_active : R.string.leo_hifi_not_active);
++        readback.setText(getContext().getString(R.string.leo_hifi_volume_readback,
++                slider.getProgress(), s.volumeLeft, s.volumeRight));
++    }
++}
+diff --git a/packages/SystemUI/src/com/android/systemui/qs/tileimpl/QSFactoryImpl.java b/packages/SystemUI/src/com/android/systemui/qs/tileimpl/QSFactoryImpl.java
+--- a/packages/SystemUI/src/com/android/systemui/qs/tileimpl/QSFactoryImpl.java
++++ b/packages/SystemUI/src/com/android/systemui/qs/tileimpl/QSFactoryImpl.java
+@@ -228,6 +228,9 @@
+                 return mNfcTileProvider.get();
+             case "dark":
+                 return mUiModeNightTileProvider.get();
++            case "hifi":
++                if (!"leo".equals(android.os.Build.DEVICE)) return null;
++                return new com.android.systemui.qs.tiles.LeoHifiTile(mHost);
+             // Custom tiles.
+             case "adb_network":
+                 return mAdbOverNetworkTileProvider.get();
+diff --git a/packages/SystemUI/src/com/android/systemui/qs/tiles/LeoHifiTile.java b/packages/SystemUI/src/com/android/systemui/qs/tiles/LeoHifiTile.java
+new file mode 100644
+--- /dev/null
++++ b/packages/SystemUI/src/com/android/systemui/qs/tiles/LeoHifiTile.java
+@@ -0,0 +1,135 @@
++package com.android.systemui.qs.tiles;
++
++import android.content.Intent;
++import android.widget.Switch;
++import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
++import android.os.Build;
++import android.os.SystemClock;
++import android.service.quicksettings.Tile;
++import com.android.systemui.Dependency;
++import com.android.systemui.R;
++import com.android.systemui.plugins.ActivityStarter;
++import com.android.systemui.plugins.qs.QSTile.BooleanState;
++import com.android.systemui.qs.QSHost;
++import com.android.systemui.qs.tileimpl.QSTileImpl;
++import com.android.systemui.leo.LeoHifiController;
++import com.android.systemui.leo.LeoHifiState;
++import com.android.systemui.leo.LeoHifiVolumeDialog;
++
++public class LeoHifiTile extends QSTileImpl<BooleanState> implements LeoHifiController.Callback {
++
++    private final Icon mIcon = ResourceIcon.get(R.drawable.ic_leo_hifi);
++    private final LeoHifiController mController;
++
++    public LeoHifiTile(QSHost host) {
++        super(host);
++        mController = LeoHifiController.get(mContext);
++        mController.addCallback(this);
++    }
++
++    @Override
++    protected void handleDestroy() {
++        super.handleDestroy();
++        mController.removeCallback(this);
++    }
++
++    @Override
++    public BooleanState newTileState() {
++        return new BooleanState();
++    }
++
++    @Override
++    protected void handleSetListening(boolean listening) {
++        if (listening) {
++            mController.refresh();
++        }
++    }
++
++    @Override
++    protected void handleClick() {
++        LeoHifiState state = mController.getState();
++        if (state == null || !state.available || !state.supported || state.pending || !state.isFresh(SystemClock.elapsedRealtime())) {
++            return;
++        }
++        Dependency.get(ActivityStarter.class).postQSRunnableDismissingKeyguard(() -> {
++            LeoHifiState freshState = mController.getState();
++            if (freshState != null && freshState.available && freshState.supported && !freshState.pending && freshState.isFresh(SystemClock.elapsedRealtime())) {
++                mController.requestEnabled(!freshState.requested);
++            }
++        });
++    }
++
++    @Override
++    protected void handleLongClick() {
++        Dependency.get(ActivityStarter.class).postQSRunnableDismissingKeyguard(() -> {
++            LeoHifiState current = mController.getState();
++            if (current.available && current.supported && !current.pending
++                    && current.isFresh(SystemClock.elapsedRealtime()))
++                new LeoHifiVolumeDialog(mContext, mController).show();
++        });
++    }
++
++    @Override
++    public Intent getLongClickIntent() {
++        return null;
++    }
++
++    @Override
++    public boolean isAvailable() {
++        return "leo".equals(Build.DEVICE);
++    }
++
++    @Override
++    protected void handleUpdateState(BooleanState state, Object arg) {
++        LeoHifiState hifiState = (arg instanceof LeoHifiState) ? (LeoHifiState) arg : mController.getState();
++        long now = SystemClock.elapsedRealtime();
++
++        state.label = mContext.getString(R.string.leo_hifi_label);
++        state.icon = mIcon;
++
++        state.expandedAccessibilityClassName = Switch.class.getName();
++        state.contentDescription = state.label;
++        if (hifiState == null || !hifiState.available || !hifiState.supported) {
++            state.state = Tile.STATE_UNAVAILABLE;
++            state.value = false;
++            state.secondaryLabel = mContext.getString(R.string.leo_hifi_unavailable);
++            return;
++        }
++
++        boolean fresh = hifiState.isFresh(now);
++        state.value = hifiState.requested;
++
++        if (hifiState.pending || !fresh) {
++            state.state = Tile.STATE_UNAVAILABLE;
++            state.secondaryLabel = mContext.getString(R.string.leo_hifi_waiting);
++        } else if ("hal_error".equals(hifiState.reason) || "request_failed".equals(hifiState.reason)
++                || "request_rejected".equals(hifiState.reason)
++                || "hifi_degraded".equals(hifiState.effective) || "error_fallback".equals(hifiState.effective)) {
++            state.state = hifiState.requested ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE;
++            state.secondaryLabel = mContext.getString(R.string.leo_hifi_error);
++        } else if (hifiState.active) {
++            state.state = hifiState.requested ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE;
++            state.secondaryLabel = mContext.getString(R.string.leo_hifi_active);
++        } else {
++            state.state = hifiState.requested ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE;
++            state.secondaryLabel = mContext.getString(hifiState.requested
++                    ? R.string.leo_hifi_standby : R.string.leo_hifi_off);
++        }
++        state.contentDescription = state.label + ", " + state.secondaryLabel;
++    }
++
++    @Override
++    public CharSequence getTileLabel() {
++        return mContext.getString(R.string.leo_hifi_label);
++    }
++
++    @Override
++    public int getMetricsCategory() {
++        return MetricsEvent.VIEW_UNKNOWN;
++    }
++
++    @Override
++    public void onStateChanged(LeoHifiState state) {
++        refreshState(state);
++    }
++}
