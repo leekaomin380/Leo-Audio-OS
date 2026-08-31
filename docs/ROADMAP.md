@@ -84,8 +84,19 @@
   M3 保持 NO-GO DEVICE；
   - R7-B 本身已于 2026-08-30 在机闭合，且覆盖范围超出原定：实测阶梯
     `213 → 229 → 241 → 247 → 205`，每档写入后读回校验、左右声道一致，
-    结束时由 `audio_route` 自动复位至 205。**本条仍不勾**，因为
-    「真实 Android HAL 模块链接」未做。
+    结束时由 `audio_route` 自动复位至 205。
+  - 2026-08-31 真实 HAL 模块链接**已完成**：以 `7f4cac74` + 5 个 M3 补丁为输入，
+    11/11 源文件用真实 AOSP 头文件与设备实际内核（3.10.108，与设备 `/proc/version`
+    吻合）的 uapi 头编译通过，surrogate 头文件依赖已消除；`ld.lld` 链接出
+    `ELF 32-bit ARM EABI5 shared object`，SONAME 与 `DT_NEEDED` 同出厂模块一致，
+    导出 `HMI`，**122 个未解析符号 100% 由设备自身 12 个运行库满足，缺失 0**，
+    并首次导出 `leo_hifi_*` 8 个控制器符号。
+    `use_case_table` 悬案同时闭合：实测 10 个编译单元 → 9 个重复定义（此前记录的
+    「×11」不准），`-fcommon` 零源码改动即复现出厂语义。
+    详见 `docs/reviews/2026-08-31-gate2-real-hal-module-link.md`。
+  - **本条仍不勾**，两项条件（R7-B、真实链接）虽均已完成，但产物与出厂模块存在
+    确凿结构差异（缺 `.fini_array`，未加 `-D_FORTIFY_SOURCE=2`），且从未被 `dlopen`
+    或由 audioserver 加载验证。**链接成功 ≠ 可加载 ≠ 可播放。**是否勾选待用户裁决。
 - [ ] 差量恢复 ESS9018、Forte ACDB 和 QUAT MI2S 音频等价性；实机已证明缺口仅在 HAL 的输出设备选择。
   - 2026-08-30 在机验证：纯 XML 改动即可完成 ESS 路由。日志
     `out_snd_device(7: hifi-headphones)`、`apply mixer and update path:
