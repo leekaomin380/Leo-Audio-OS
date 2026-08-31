@@ -9,11 +9,13 @@
 ## 可执行顺序
 
 1. 在独立 Linux x86_64 主机上同步本清单，保留约 350GB 可用磁盘；建议 16 vCPU、64GB RAM。这是资源规划值，不是已完成的资源测量或必需下限。
-2. 记录 Linux 镜像、repo 工具版本、全部源 HEAD、产品变量和工具链。产品来自设备树的 `mokee_leo`，使用 `mokee_leo-userdebug`。先构建未打补丁的 `audio.primary.msm8994` 并保存完整命令与日志。
+2. 先运行 `python3 build/hifi-daily-v1/audit-inputs.py <Android 源码根目录> --report <源码树外的新证据文件.json>`。该检查只读核对全部独立仓库、HEAD、工作区状态和清单来源一致性，记录主机资源；缺失、错误版本、修改或不支持的主机均返回非零。它不下载、不构建、不覆盖旧报告。随后记录 Linux 镜像、repo 工具版本、产品变量和工具链。产品来自设备树的 `mokee_leo`，使用 `mokee_leo-userdebug`。先构建未打补丁的 `audio.primary.msm8994` 并保存完整命令与日志。
 3. 使用 `prepare-hal.py <Android 源码根目录>` 应用 8 个补丁。它拒绝非固定 HEAD 或已有改动的 HAL 工作区，绝不自动 reset/clean。
 4. 分别使用独立 OUT_DIR 构建 OFF 与 ON 单模块。ON 的产品变量为 `AUDIO_FEATURE_ENABLED_LEO_HIFI=true`，OFF 为 false；必须从生成的 ninja/编译命令中核实变量实际生效，不能仅凭命令行赋值。不要构建 SystemUI 或整套 ROM。
 5. 核对 baseline/OFF/ON 的源码、编译参数、CRT、compiler-runtime、目标 ARM 属性、SONAME、DT_NEEDED、动态符号与符号版本、BIND_NOW、SOUND_TRIGGER_ENABLED/功能依赖及实际产物路径。至少核对 32 位运行模块；不能删去未在一次现场观察中映射的 lib64 模块。
 6. 通过上述检查后再形成绑定本次产物 SHA 的安装计划。`scripts/stage2` 仍默认引用历史 schema3 诊断模块；其脚本安全修复不是新产物的准入许可，也不能直接拿它部署日用版本。
+
+`audit-inputs.py` 是打补丁前的输入记录，不用于将已打补丁的源码误报为干净基线。12 个真实临时 Git 仓库测试场景覆盖缺失、父仓库误识别、版本不符、修改、目录逃逸、来源不符和证据覆盖保护。测试命令为 `python3 tests/hifi-daily-v1/test_input_audit.py`。报告始终保留 `build_verified=false` 和 `target_module_verified=false`：没有核验生成文件、所有忽略文件、工具链可执行性或最终编译命令；功能开关和 ABI 检查仍需在真实构建后执行。
 
 ## 构建环境的当前缺口
 
