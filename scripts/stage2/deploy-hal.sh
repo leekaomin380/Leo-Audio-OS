@@ -53,7 +53,7 @@ ok "audioserver=$(as_pid)  hal_svc=$(hal_pid)"
 say
 say "== 5. 运行期核验 =="
 rc=0
-need "新 HAL 已被映射（dlopen 成功）" "1" "$(hal_mapped)" || rc=1
+need_ge "新 HAL 已被映射（dlopen 成功）" 1 "$(hal_mapped)" || rc=1
 need "未发生重启"  "$BOOT_BEFORE" "$(boot_id)" || rc=1
 need "205 音量基线未被改动" "$VOLUME_BASELINE" "$(volume)" || rc=1
 need "lib64 未被动过" "$HAL64_SIZE" "$(sh_ "stat -c %s $HAL64")" || rc=1

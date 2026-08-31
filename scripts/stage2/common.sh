@@ -24,6 +24,13 @@ ok()   { printf '  [OK]   %s\n' "$*"; }
 bad()  { printf '  [FAIL] %s\n' "$*" >&2; }
 die()  { bad "$*"; exit 1; }
 
+# 一个已 dlopen 的 .so 在 /proc/<pid>/maps 里占多行（r--/r-x/rw-/r--，实测 4 行），
+# 行数随段布局而变。语义是"已被映射"，不是"恰好一行"。
+need_ge() { # need_ge <description> <min> <actual>
+  if [ "${3:-0}" -ge "$2" ] 2>/dev/null; then ok "$1 (映射 $3 行)"
+  else bad "$1"; printf '         期望 >= %s，实际: %s\n' "$2" "$3" >&2; return 1; fi
+}
+
 need() { # need <description> <expected> <actual>
   if [ "$2" = "$3" ]; then ok "$1"
   else bad "$1"; printf '         期望: %s\n         实际: %s\n' "$2" "$3" >&2; return 1; fi
@@ -38,7 +45,7 @@ volume()    { sh_ 'tinymix Volume' | tr -d '\n'; }
 boot_id()   { sh_ 'cat /proc/sys/kernel/random/boot_id'; }
 hal_pid()   { sh_ 'pidof android.hardware.audio@2.0-service'; }
 as_pid()    { sh_ 'pidof audioserver'; }
-hal_mapped(){ sh_ "grep -c '$HAL' /proc/\$(pidof android.hardware.audio@2.0-service)/maps"; }
+hal_mapped(){ sh_ "grep -c 'audio.primary.msm8994' /proc/\$(pidof android.hardware.audio@2.0-service)/maps"; }
 hifi_probe(){ sh_ 'dumpsys media.audio_flinger 2>/dev/null | grep -c leo_hifi'; }
 
 preflight() {

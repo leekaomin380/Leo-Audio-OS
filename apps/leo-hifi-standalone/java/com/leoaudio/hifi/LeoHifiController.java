@@ -125,7 +125,14 @@ public final class LeoHifiController {
     private static Method sSetParameters;
     private static boolean sSetParametersResolved;
 
-    private String halRead() { return audio.getParameters("leo_hifi_status"); }
+    private String halRead() {
+        String w = audio.getParameters("leo_hifi_status");
+        Log.i(TAG, "WIRE[" + (w == null ? "null" : String.valueOf(w.length())) + "]=" + w);
+        LeoHifiState st = LeoHifiState.parse(w, now());
+        Log.i(TAG, "PARSE avail=" + st.available + " supp=" + st.supported + " reason=" + st.reason
+                + " volL=" + st.volumeLeft + " volR=" + st.volumeRight + " eff=" + st.effective);
+        return w;
+    }
 
     private int halWrite(String keyValuePairs) {
         if (!sSetParametersResolved) {

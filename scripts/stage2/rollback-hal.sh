@@ -42,7 +42,7 @@ ok "audioserver=$(as_pid)  hal_svc=$(hal_pid)"
 
 say "-- 运行期核验 --"
 rc=0
-need "HAL 已被映射进服务进程" "1" "$(hal_mapped)" || rc=1
+need_ge "HAL 已被映射进服务进程" 1 "$(hal_mapped)" || rc=1
 need "205 音量基线"           "$VOLUME_BASELINE" "$(volume)" || rc=1
 need "lib64 未被动过"         "$HAL64_SIZE" "$(sh_ "stat -c %s $HAL64")" || rc=1
 [ $rc -eq 0 ] || die "回退后运行期核验未通过——人工介入"

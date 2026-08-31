@@ -17,7 +17,7 @@ setup() {
   echo "Volume: 205 205 (dsrange 0->255)" > "$R/volume"
   echo "/dev/block/mmcblk0p41 / ext4 ro,seclabel,nodev,relatime,discard 0 0" > "$R/mount_state"; echo ro > "$R/mount_ro"
   echo "u:object_r:vendor_file:s0" > "$R/ctx"; echo 644 > "$R/mode"; echo root > "$R/owner"
-  echo running > "$R/svc_as"; echo running > "$R/svc_hal"; echo 1 > "$R/mapped"
+  echo running > "$R/svc_as"; echo running > "$R/svc_hal"; echo 4 > "$R/mapped"
   shasum -a 256 "$STOCK" | cut -d' ' -f1 > "$R/stock_sha"
 }
 run() { # run <label> <MOCK_FAIL> <args...>

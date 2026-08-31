@@ -67,7 +67,7 @@ case "$c" in
       echo running > "$R/svc_as"; echo running > "$R/svc_hal"
       echo $(( $(cat $R/as_pid) + 100 )) > "$R/as_pid"
       echo $(( $(cat $R/hal_pid 2>/dev/null || echo 6379) + 100 )) > "$R/hal_pid"
-      echo 1 > "$R/mapped"
+      echo 4 > "$R/mapped"
     fi;;
   *"getprop init.svc.audioserver"*)          cat "$R/svc_as";;
   *"getprop init.svc.vendor.audio-hal-2-0"*) cat "$R/svc_hal";;

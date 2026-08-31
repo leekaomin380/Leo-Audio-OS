@@ -10,6 +10,7 @@ JDK=${JAVA_HOME:-/opt/homebrew/opt/openjdk}
 export JAVA_HOME="$JDK"
 export PATH="$JDK/bin:$PATH"
 OUT=$HERE/build
+KS=$HERE/.debug.keystore   # 必须在 build/ 之外：rm -rf $OUT 会连钥匙一起删，导致每次换签名
 rm -rf "$OUT"; mkdir -p "$OUT/res" "$OUT/gen" "$OUT/classes"
 
 echo "[1/6] aapt2 compile"
@@ -39,13 +40,13 @@ cp "$OUT/base.apk" "$OUT/unsigned.apk"
 echo "[6/6] sign"
 # Throwaway debug key. NOT a platform key, NOT the MoKee release key. This APK is
 # installed with `adb install` as an ordinary app; its signature grants it nothing.
-if [ ! -f "$OUT/debug.keystore" ]; then
-  "$JDK/bin/keytool" -genkeypair -v -keystore "$OUT/debug.keystore" \
+if [ ! -f "$KS" ]; then
+  "$JDK/bin/keytool" -genkeypair -v -keystore "$KS" \
     -storepass android -keypass android -alias leohifidebug \
     -keyalg RSA -keysize 2048 -validity 3650 \
     -dname "CN=Leo HiFi Stage1 Debug, OU=throwaway, O=none, C=CN" >/dev/null 2>&1
 fi
-"$BT/apksigner" sign --ks "$OUT/debug.keystore" --ks-pass pass:android \
+"$BT/apksigner" sign --ks "$KS" --ks-pass pass:android \
   --key-pass pass:android --ks-key-alias leohifidebug \
   --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
   --min-sdk-version 29 --out "$OUT/leo-hifi-stage1.apk" "$OUT/aligned.apk"

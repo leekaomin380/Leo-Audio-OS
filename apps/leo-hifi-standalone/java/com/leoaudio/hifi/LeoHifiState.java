@@ -55,6 +55,17 @@ public final class LeoHifiState {
         if (payload.startsWith("leo_hifi_status=")) {
             payload = payload.substring("leo_hifi_status=".length());
         }
+        // 诊断性兼容层（2026-08-31 真机发现）。
+        // 框架的 AudioParameter 以 ';' 和 '=' 作为自身线格式。HAL 把整个
+        // ';'/'=' 分隔的载荷嵌在单个参数值里，于是 AudioParameter 会把它
+        // 重新解析、拆平、并按键名字母序重排后再交给 Java。拆平后原先的
+        // "leo_hifi_status=schema=3" 变成唯一一个带两个 '=' 的对，触发
+        // malformed_pair，整个状态落 unavailable。
+        // 数据未丢失，只是失去了嵌套。这里把那一对还原成 "schema=3"。
+        // 这是权宜之计：正解是 HAL 侧不再嵌套（见 docs 中的记录）。
+        if (payload.contains("leo_hifi_status=schema=")) {
+            payload = payload.replace("leo_hifi_status=schema=", "schema=");
+        }
 
         if (payload.trim().isEmpty()) {
             return unavailable("empty_payload", now);
