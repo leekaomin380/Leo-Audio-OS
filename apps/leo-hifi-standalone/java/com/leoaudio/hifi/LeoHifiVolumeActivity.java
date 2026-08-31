@@ -33,6 +33,7 @@ public final class LeoHifiVolumeActivity extends Activity implements LeoHifiCont
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        LeoHifiMonitorService.start(this);
         controller = LeoHifiController.get(this);
 
         LinearLayout layout = new LinearLayout(this);
@@ -112,7 +113,8 @@ public final class LeoHifiVolumeActivity extends Activity implements LeoHifiCont
         status.setText(s.pending ? R.string.leo_hifi_waiting
                 : "request_failed".equals(s.reason) || "request_rejected".equals(s.reason)
                 ? R.string.leo_hifi_error : ready ? R.string.leo_hifi_active : R.string.leo_hifi_not_active);
-        readback.setText(getString(R.string.leo_hifi_volume_readback,
-                slider.getProgress(), s.volumeLeft, s.volumeRight));
+        readback.setText(s.available ? getString(R.string.leo_hifi_volume_readback,
+                slider.getProgress(), s.volumeLeft, s.volumeRight)
+                : getString(R.string.leo_hifi_no_readback));
     }
 }

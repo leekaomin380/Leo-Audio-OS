@@ -30,15 +30,12 @@ else
 
   shx_ 'mount -o rw,remount /' >/dev/null || die "remount rw 失败"
   if [ "$src" = device ]; then
-    shx_ "cp -f $DEV_BACKUP $HAL" >/dev/null || die "回写失败"
+    replace_hal "$DEV_BACKUP" "$STOCK_SHA" || die "回写失败"
   else
     push_ "$HOST_STOCK" /data/local/tmp/stock.so || die "push 失败"
     [ "$(sh_ 'sha256sum /data/local/tmp/stock.so' | cut -d' ' -f1)" = "$STOCK_SHA" ] || die "push 后 hash 不符"
-    shx_ "cp -f /data/local/tmp/stock.so $HAL" >/dev/null || die "回写失败"
+    replace_hal /data/local/tmp/stock.so "$STOCK_SHA" || die "回写失败"
   fi
-  shx_ "chown $OWNER:$OWNER $HAL" >/dev/null || die "chown 失败"
-  shx_ "chmod $MODE $HAL"         >/dev/null || die "chmod 失败"
-  shx_ "chcon $CTX $HAL"          >/dev/null || die "chcon 失败"
   shx_ 'mount -o ro,remount /'    >/dev/null || die "remount ro 失败——分区仍可写，人工介入"
   CHANGED=1
 fi
@@ -50,16 +47,17 @@ if [ $CHANGED -eq 1 ] || [ $FORCE_RESTART -eq 1 ]; then
   say "-- 重启服务 --"
   service_cycle || die "服务身份未变化——重启未真正发生，人工介入"
   ok "audioserver=$(as_pid)  hal_svc=$(hal_pid)"
+
+else
+  say "-- 未回写文件，不重启服务（避免打断正在播放的音频）--"
+  say "   若部署中途失败需要强制重启，用: $0 --force-restart"
+fi
+
   say "-- 运行期核验 --"
   rc=0
   need "服务进程映射的正是磁盘上那个 inode" "$(hal_inode)" "$(hal_mapped_inode)" || rc=1
   need "205 音量基线"   "$VOLUME_BASELINE" "$(volume)" || rc=1
   need "lib64 未被动过" "$HAL64_SIZE" "$(sh_ "stat -c %s $HAL64")" || rc=1
   [ $rc -eq 0 ] || die "回退后运行期核验未通过——人工介入"
-else
-  say "-- 未回写文件，不重启服务（避免打断正在播放的音频）--"
-  say "   若部署中途失败需要强制重启，用: $0 --force-restart"
-fi
-
 say
 say "=== 回退完成。设备已回到原版 HAL，205 基线保持。 ==="

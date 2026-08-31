@@ -5,13 +5,15 @@ set -e
 HERE=$(cd "$(dirname "$0")" && pwd)
 SDK=${ANDROID_SDK:-$HOME/Library/Android/sdk}
 BT=$SDK/build-tools/36.0.0
-JAR=$SDK/platforms/android-36/android.jar
+JAR=${ANDROID_API_JAR:-$SDK/platforms/android-29/android.jar}
+[ -f "$JAR" ] || { echo "API 29 android.jar required (ANDROID_API_JAR may specify its path)" >&2; exit 1; }
 JDK=${JAVA_HOME:-/opt/homebrew/opt/openjdk}
 export JAVA_HOME="$JDK"
 export PATH="$JDK/bin:$PATH"
-OUT=$HERE/build
+mkdir -p "$HERE/build"
+OUT=$(mktemp -d "$HERE/build/run.XXXXXX")
 KS=$HERE/.debug.keystore   # 必须在 build/ 之外：rm -rf $OUT 会连钥匙一起删，导致每次换签名
-rm -rf "$OUT"; mkdir -p "$OUT/res" "$OUT/gen" "$OUT/classes"
+mkdir -p "$OUT/res" "$OUT/gen" "$OUT/classes"
 
 echo "[1/6] aapt2 compile"
 "$BT/aapt2" compile --dir "$HERE/res" -o "$OUT/res.zip"
@@ -26,7 +28,7 @@ echo "[3/6] javac"
 find "$HERE/java" "$OUT/gen" -name '*.java' > "$OUT/sources.txt"
 "$JDK/bin/javac" -source 8 -target 8 -nowarn \
   -bootclasspath "$JAR" -classpath "$JAR:$BT/core-lambda-stubs.jar" \
-  -d "$OUT/classes" @"$OUT/sources.txt" 2>&1 | grep -v 'bootstrap class path\|source value 8\|target value 8\|deprecat' || true
+  -d "$OUT/classes" @"$OUT/sources.txt"
 
 echo "[4/6] d8"
 find "$OUT/classes" -name '*.class' > "$OUT/classes.txt"
@@ -49,9 +51,9 @@ fi
 "$BT/apksigner" sign --ks "$KS" --ks-pass pass:android \
   --key-pass pass:android --ks-key-alias leohifidebug \
   --v1-signing-enabled true --v2-signing-enabled true --v3-signing-enabled true \
-  --min-sdk-version 29 --out "$OUT/leo-hifi-stage1.apk" "$OUT/aligned.apk"
-"$BT/apksigner" verify --min-sdk-version 29 -v "$OUT/leo-hifi-stage1.apk" | head -5
+  --min-sdk-version 29 --out "$OUT/leo-hifi-daily-candidate.apk" "$OUT/aligned.apk"
+"$BT/apksigner" verify --min-sdk-version 29 -v "$OUT/leo-hifi-daily-candidate.apk"
 
 echo
-echo "APK: $OUT/leo-hifi-stage1.apk"
-ls -l "$OUT/leo-hifi-stage1.apk"
+echo "APK: $OUT/leo-hifi-daily-candidate.apk"
+ls -l "$OUT/leo-hifi-daily-candidate.apk"

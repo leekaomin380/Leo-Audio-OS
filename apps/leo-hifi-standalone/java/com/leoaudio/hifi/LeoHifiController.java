@@ -11,34 +11,11 @@ import android.os.Looper;
 import android.os.SystemClock;
 import android.os.UserManager;
 import android.util.Log;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 
-/**
- * Standalone port of the SystemUI-resident controller. HAL remains the only mixer writer.
- * No exported entry point.
- *
- * Deltas from com.android.systemui.leo.LeoHifiController, each deliberate:
- *
- *  1. android.media.AudioSystem (@hide) is replaced by android.media.AudioManager, whose
- *     get/setParameters are public SDK API over the same AudioFlinger path. AudioFlinger
- *     gates that path on MODIFY_AUDIO_SETTINGS, which is protectionLevel=normal on this
- *     ROM, so no privileged status is required to drive schema3.
- *
- *  2. AudioManager.setParameters returns void, so the int status AudioSystem.setParameters
- *     returned is not available. LeoHifiRequestGate.accepts() uses that status only as a
- *     fast-fail; every substantive check after it is a readback proof (session equality,
- *     generation match/advance, requested-value match, exact dual-channel volume readback,
- *     effective-state match, freshness). We still recover the true status by reflection when
- *     hidden-API access is permitted (system/priv-app, or a relaxed hidden_api_policy) and
- *     fall back to 0 otherwise. WRITE_STATUS_UNAVAILABLE records which path was taken so the
- *     acceptance evidence can state whether a real status code backed it.
- *
- *  3. ActivityManager.getCurrentUser() == 0 is dropped: it is @hide, and in SystemUI it
- *     guarded a process that persists across user switches. This app's process is bound to
- *     its own user, and ownerProcess() already requires that user to be the system user, so
- *     the foreground-user check is redundant here. The keyguard and user-unlocked guards are
- *     retained verbatim.
+/** Public-API ordinary-app controller. HAL is the only mixer writer.
+ * setParameters has no return status; every acknowledgment requires a fresh,
+ * identity-bound readback. No hidden API or privileged install is used.
  */
 public final class LeoHifiController {
     private static final String TAG = "LeoHifi";
@@ -118,45 +95,15 @@ public final class LeoHifiController {
         } catch (RuntimeException e) { return false; }
     }
 
-    // ---- HAL access -------------------------------------------------------
-    // Read is public SDK. Write prefers the hidden AudioSystem.setParameters for its int
-    // status and degrades to the public AudioManager.setParameters, which returns void.
-
-    private static Method sSetParameters;
-    private static boolean sSetParametersResolved;
-
+    // Public SDK only. No logcat dump on every one-second status poll.
     private String halRead() {
-        String w = audio.getParameters("leo_hifi_status");
-        Log.i(TAG, "WIRE[" + (w == null ? "null" : String.valueOf(w.length())) + "]=" + w);
-        LeoHifiState st = LeoHifiState.parse(w, now());
-        Log.i(TAG, "PARSE avail=" + st.available + " supp=" + st.supported + " reason=" + st.reason
-                + " volL=" + st.volumeLeft + " volR=" + st.volumeRight + " eff=" + st.effective);
-        return w;
+        return audio.getParameters("leo_hifi_status");
     }
 
     private int halWrite(String keyValuePairs) {
-        if (!sSetParametersResolved) {
-            sSetParametersResolved = true;
-            try {
-                Class<?> as = Class.forName("android.media.AudioSystem");
-                sSetParameters = as.getMethod("setParameters", String.class);
-            } catch (Throwable t) {
-                sSetParameters = null;
-                Log.i(TAG, "AudioSystem.setParameters unavailable; using AudioManager (no status code)");
-            }
-        }
-        if (sSetParameters != null) {
-            try {
-                Object r = sSetParameters.invoke(null, keyValuePairs);
-                if (r instanceof Integer) return (Integer) r;
-            } catch (Throwable t) {
-                sSetParameters = null;
-                Log.i(TAG, "AudioSystem.setParameters invocation blocked; falling back", t);
-            }
-        }
         WRITE_STATUS_UNAVAILABLE = true;
         audio.setParameters(keyValuePairs);
-        return 0; // Readback in LeoHifiRequestGate.accepts() carries the proof.
+        return 0; // Transport attempt only. RequestGate readback carries proof.
     }
 
     // ---- transaction ------------------------------------------------------

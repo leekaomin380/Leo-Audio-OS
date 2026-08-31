@@ -51,39 +51,30 @@ public final class LeoHifiState {
             return unavailable("empty_or_oversize", now);
         }
 
-        String payload = wire;
-        if (payload.startsWith("leo_hifi_status=")) {
-            payload = payload.substring("leo_hifi_status=".length());
-        }
-        // 诊断性兼容层（2026-08-31 真机发现）。
-        // 框架的 AudioParameter 以 ';' 和 '=' 作为自身线格式。HAL 把整个
-        // ';'/'=' 分隔的载荷嵌在单个参数值里，于是 AudioParameter 会把它
-        // 重新解析、拆平、并按键名字母序重排后再交给 Java。拆平后原先的
-        // "leo_hifi_status=schema=3" 变成唯一一个带两个 '=' 的对，触发
-        // malformed_pair，整个状态落 unavailable。
-        // 数据未丢失，只是失去了嵌套。这里把那一对还原成 "schema=3"。
-        // 这是权宜之计：正解是 HAL 侧不再嵌套（见 docs 中的记录）。
-        if (payload.contains("leo_hifi_status=schema=")) {
-            payload = payload.replace("leo_hifi_status=schema=", "schema=");
-        }
+        // Exactly one Android AudioParameter key. The inner schema never uses
+        // ';' or '='; reject legacy flattening instead of guessing provenance.
+        if (!wire.startsWith("leo_hifi_status=") || wire.indexOf(';') >= 0
+                || wire.indexOf('=', "leo_hifi_status=".length()) >= 0)
+            return unavailable("invalid_envelope", now);
+        String payload = wire.substring("leo_hifi_status=".length());
 
         if (payload.trim().isEmpty()) {
             return unavailable("empty_payload", now);
         }
 
         Map<String, String> map = new HashMap<>();
-        String[] pairs = payload.split(";", -1);
+        String[] pairs = payload.split(",", -1);
         for (String pair : pairs) {
             if (pair.isEmpty()) {
                 return unavailable("empty_pair", now);
             }
-            int eq = pair.indexOf('=');
-            if (eq <= 0 || eq == pair.length() - 1 || pair.indexOf('=', eq + 1) >= 0) {
+            int eq = pair.indexOf(':');
+            if (eq <= 0 || eq == pair.length() - 1 || pair.indexOf(':', eq + 1) >= 0) {
                 return unavailable("malformed_pair", now);
             }
             String k = pair.substring(0, eq);
             String v = pair.substring(eq + 1);
-            if (!k.matches("[a-zA-Z0-9_]+") || !v.matches("[a-zA-Z0-9_./x-]+")) return unavailable("invalid_token", now);
+            if (!k.matches("[a-z][a-z0-9_]*") || !v.matches("[A-Za-z0-9_./-]+")) return unavailable("invalid_token", now);
             if (map.containsKey(k)) {
                 return unavailable("duplicate_key", now);
             }
@@ -91,7 +82,23 @@ public final class LeoHifiState {
         }
 
         try {
-            if (!"3".equals(map.get("schema"))) return unavailable("invalid_schema", now);
+            if (!"4".equals(map.get("schema"))) return unavailable("invalid_schema", now);
+            String[] required = {"schema", "session", "gen", "supported", "requested",
+                    "effective", "live", "flow", "vol_ctl_l", "vol_ctl_r", "vol_db",
+                    "vol_user", "backend", "fail", "permanent_fail", "probes", "ev",
+                    "bypass", "vol_applied", "restore_pending", "acdb"};
+            for (String key : required)
+                if (!map.containsKey(key)) return unavailable("missing_" + key, now);
+            // Fixed schema: an extension requires a deliberate protocol revision.
+            if (map.size() != required.length) return unavailable("unknown_key", now);
+            for (String key : new String[]{"permanent_fail", "vol_applied", "restore_pending"})
+                if (!"0".equals(map.get(key)) && !"1".equals(map.get(key)))
+                    return unavailable("invalid_" + key, now);
+            if (!map.get("probes").matches("[0-3]")
+                    || !map.get("ev").matches("0x[0-9a-f]{1,8}")
+                    || !map.get("bypass").matches("0x[0-9a-f]{1,8}")
+                    || !"absent_expected".equals(map.get("acdb")))
+                return unavailable("invalid_diagnostics", now);
 
             String sessionStr = map.get("session");
             if (sessionStr == null) return unavailable("missing_session", now);
@@ -134,6 +141,11 @@ public final class LeoHifiState {
             if (vlStr == null || vrStr == null) return unavailable("missing_vol_ctl", now);
             int volL = Integer.parseInt(vlStr);
             int volR = Integer.parseInt(vrStr);
+            if (volL < -1 || volL > 255 || volR < -1 || volR > 255)
+                return unavailable("invalid_vol_ctl", now);
+            String db = volL < 0 ? "0.0" : String.format(java.util.Locale.ROOT,
+                    "%.1f", -127.5 + 0.5 * volL);
+            if (!db.equals(map.get("vol_db"))) return unavailable("invalid_vol_db", now);
 
             String vuStr = map.get("vol_user");
             if (vuStr == null) return unavailable("missing_vol_user", now);
@@ -150,7 +162,9 @@ public final class LeoHifiState {
             long fail = Long.parseLong(failStr);
             if (fail < 0) return unavailable("invalid_fail", now);
 
-            boolean active = supported &&
+            boolean healthy = fail == 0 && "0".equals(map.get("restore_pending"))
+                    && "0".equals(map.get("permanent_fail"));
+            boolean active = supported && requested && healthy &&
                     "hifi_active".equals(effStr) &&
                     live &&
                     flow &&
@@ -160,7 +174,7 @@ public final class LeoHifiState {
                     (fail == 0);
 
             return new LeoHifiState(true, supported, requested, active, false,
-                    volUser, volL, volR, session, gen, now, effStr, fail == 0 ? "parsed" : "hal_error", backendStr);
+                    volUser, volL, volR, session, gen, now, effStr, healthy ? "parsed" : "hal_error", backendStr);
         } catch (NumberFormatException e) {
             return unavailable("number_format_error", now);
         }

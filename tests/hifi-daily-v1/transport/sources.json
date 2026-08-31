@@ -1,0 +1,32 @@
+[
+  {
+    "path": "libcutils/str_parms.cpp",
+    "url": "https://raw.githubusercontent.com/MoKee/android_system_core/4556741784d88c8a9440c1c92ccddf046a1399d9/libcutils/str_parms.cpp",
+    "sha256": "6cbc54c707075ef45ebc0e12e686c2445187873ea8431520480639caca069908",
+    "matches_aosp": true
+  },
+  {
+    "path": "libcutils/hashmap.cpp",
+    "url": "https://raw.githubusercontent.com/MoKee/android_system_core/4556741784d88c8a9440c1c92ccddf046a1399d9/libcutils/hashmap.cpp",
+    "sha256": "b108a2b39cbdc9fa563731eb9edf21a47c4a08ea268adc0c802330982d589a4a",
+    "matches_aosp": true
+  },
+  {
+    "path": "libcutils/include/cutils/str_parms.h",
+    "url": "https://raw.githubusercontent.com/MoKee/android_system_core/4556741784d88c8a9440c1c92ccddf046a1399d9/libcutils/include/cutils/str_parms.h",
+    "sha256": "f7d0b83838c2526b15b624435ff37088aa43bcd584d1597470e2acfa9fdc3f97",
+    "matches_aosp": true
+  },
+  {
+    "path": "libcutils/include/cutils/hashmap.h",
+    "url": "https://raw.githubusercontent.com/MoKee/android_system_core/4556741784d88c8a9440c1c92ccddf046a1399d9/libcutils/include/cutils/hashmap.h",
+    "sha256": "48ad8513b79fb44ad9c93907a778bf5e96350ade8c29b9fc7e2c9ce72b30979f",
+    "matches_aosp": true
+  },
+  {
+    "path": "libcutils/include/cutils/memory.h",
+    "url": "https://raw.githubusercontent.com/MoKee/android_system_core/4556741784d88c8a9440c1c92ccddf046a1399d9/libcutils/include/cutils/memory.h",
+    "sha256": "d186468e962d2d51ec60e3fca2e536766df2a5dc76f463a2eded303b624d2857",
+    "matches_aosp": true
+  }
+]

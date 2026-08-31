@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="leo_hifi_no_readback">尚未取得有效 HAL 音量回读</string>
+    <string name="leo_monitor_channel">状态监测</string>
+    <string name="leo_active_channel">已核实的 HiFi 工作状态</string>
+    <string name="leo_monitor_title">Leo 状态监测</string>
+    <string name="leo_monitor_description">仅表示监测服务运行，不代表 HiFi 已在工作。</string>
+    <string name="leo_active_description">路由与播放证据有效 · 停止刷新后自动消失</string>
     <string name="leo_hifi_label">HIFI</string>
     <string name="leo_hifi_unavailable">后端不可用</string>
     <string name="leo_hifi_waiting">等待确认</string>

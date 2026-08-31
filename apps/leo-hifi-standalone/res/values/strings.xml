@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="leo_hifi_no_readback">No verified HAL volume readback</string>
+    <string name="leo_monitor_channel">Status monitor</string>
+    <string name="leo_active_channel">Verified HiFi activity</string>
+    <string name="leo_monitor_title">Leo status monitor</string>
+    <string name="leo_monitor_description">Monitoring only. This notification does not mean HiFi is active.</string>
+    <string name="leo_active_description">Fresh route and playback evidence · expires when not refreshed</string>
     <string name="leo_hifi_label">HIFI</string>
     <string name="leo_hifi_unavailable">Backend unavailable</string>
     <string name="leo_hifi_waiting">Waiting for confirmation</string>

@@ -1,0 +1,288 @@
+--- a/hal/msm8974/leo_hifi.c
++++ b/hal/msm8974/leo_hifi.c
+@@ -207,6 +207,11 @@
+     }
+     lh->vol_applied = false;
+ 
++    /* A service restart does not itself prove that mixer state was reset.
++     * Never replay saved gain. Recover only after the device/control probe. */
++    if (lh->supported && leo_hifi_restore_volume_floor(lh) != 0)
++        lh->effective = LEO_HIFI_ERROR_FALLBACK;
++
+     /*
+      * property_set() may fail before the vendor property_contexts entry
+      * exists (it is a device-tree change, docs/19 section 9.4).  That is not
+@@ -225,7 +230,7 @@
+         return false;
+ 
+     if (lh->supported)
+-        return true;
++        return !lh->vol_restore_pending || leo_hifi_restore_volume_floor(lh) == 0;
+ 
+     /*
+      * Bounded, read-only late re-probe.  See LEO_HIFI_PROBE_MAX.  A failed
+@@ -239,7 +244,7 @@
+           lh->probe_attempts + 1, LEO_HIFI_PROBE_MAX);
+     if (leo_probe(lh)) {
+         (void) property_set(LEO_PROP_SUPPORTED, "true");
+-        return true;
++        return leo_hifi_restore_volume_floor(lh) == 0;
+     }
+     return false;
+ }
+@@ -271,7 +276,7 @@
+ static int leo_write_volume_ctl(struct leo_hifi *lh, int ctl_value)
+ {
+     int values[2];
+-    int back[2];
++    int back[2] = {-1, -1};
+     const char *sign;
+     int whole, tenth;
+     int ret;
+@@ -306,11 +311,26 @@
+ 
+ int leo_hifi_restore_volume_floor(struct leo_hifi *lh)
+ {
++    int back[2];
++    int ret;
++
++    lh->vol_restore_pending = true;
+     if (!lh->supported || lh->ctl_volume == NULL)
+         return -ENODEV;
+ 
+-    lh->vol_applied = false;
+-    return leo_write_volume_ctl(lh, LEO_HIFI_CTL_FLOOR);
++    if (leo_hifi_read_volume(lh, back) == 0 &&
++        back[0] == LEO_HIFI_CTL_FLOOR && back[1] == LEO_HIFI_CTL_FLOOR)
++        ret = 0;
++    else
++        ret = leo_write_volume_ctl(lh, LEO_HIFI_CTL_FLOOR);
++
++    if (ret == 0) {
++        lh->vol_applied = false;
++        lh->vol_restore_pending = false;
++    } else {
++        lh->effective = LEO_HIFI_ERROR_FALLBACK;
++    }
++    return ret;
+ }
+ 
+ int leo_hifi_apply_volume(struct leo_hifi *lh, int user_vol)
+@@ -321,6 +341,9 @@
+ 
+     if (!lh->supported || lh->ctl_volume == NULL)
+         return -ENODEV;
++
++    if (lh->vol_restore_pending)
++        return -EIO;
+ 
+     if (user_vol < 0 || user_vol > LEO_HIFI_VOL_MAX) {
+         ALOGW("%s: request %d out of [0,%d]; keeping current value",
+@@ -329,8 +352,10 @@
+         return -EINVAL;
+     }
+ 
+-    if (leo_hifi_read_volume(lh, back) != 0) {
++    if (leo_hifi_read_volume(lh, back) != 0 || back[0] != back[1] ||
++        back[0] < LEO_HIFI_CTL_FLOOR || back[0] > LEO_HIFI_CTL_CEIL) {
+         lh->fail_code = LEO_FAIL_READBACK_SOFT;
++        (void) leo_hifi_restore_volume_floor(lh);
+         return -EIO;
+     }
+     current = back[0];
+@@ -350,9 +375,9 @@
+             next = (current - target > step) ? current - step : target;
+ 
+         if (leo_write_volume_ctl(lh, next) != 0) {
+-            /* Any failure returns the control to the known-safe factory value. */
+-            (void) leo_write_volume_ctl(lh, LEO_HIFI_CTL_FLOOR);
+-            lh->vol_applied = false;
++            /* A failed/partial write may already have changed hardware.
++             * Keep recovery pending until BOTH channels prove the floor. */
++            (void) leo_hifi_restore_volume_floor(lh);
+             return -EIO;
+         }
+         current = next;
+@@ -423,6 +448,8 @@
+      * asked for.  Route selection still refuses until a probe succeeds.
+      */
+     lh->requested = enable;
++    if (!enable && (lh->vol_applied || lh->vol_restore_pending))
++        (void) leo_hifi_restore_volume_floor(lh);
+     (void) property_set(LEO_PROP_ENABLE, enable ? "true" : "false");
+     ALOGI("%s: leo_hifi_mode %s -> %s (supported=%d)", __func__,
+           old ? "true" : "false", enable ? "true" : "false", lh->supported);
+@@ -550,7 +577,7 @@
+      * decision, which is why ERROR_FALLBACK is a terminal state until then.
+      */
+     (void) leo_hifi_set_backend(lh);
+-    if (lh->vol_applied)
++    if (lh->vol_applied || lh->vol_restore_pending)
+         (void) leo_hifi_restore_volume_floor(lh);
+ 
+     lh->generation++;
+@@ -567,6 +594,12 @@
+     pthread_mutex_unlock(&lh->telemetry_lock);
+ 
+     if (!to_hifi_device) {
++        if ((lh->vol_applied || lh->vol_restore_pending) &&
++            leo_hifi_restore_volume_floor(lh) != 0) {
++            lh->generation++;
++            lh->effective = LEO_HIFI_ERROR_FALLBACK;
++            return;
++        }
+         /*
+          * Ordinary wired/speaker route.  The WCD chain being live here is
+          * normal and must never be reported as an error.
+@@ -587,6 +620,10 @@
+     lh->generation++;
+     lh->evidence = 0;
+     lh->bypass = 0;
++    if (lh->vol_restore_pending && leo_hifi_restore_volume_floor(lh) != 0) {
++        lh->effective = LEO_HIFI_ERROR_FALLBACK;
++        return;
++    }
+     lh->fail_code = LEO_FAIL_NONE;
+     lh->effective = LEO_HIFI_ARMING;
+ 
+@@ -634,20 +671,23 @@
+ 
+ void leo_hifi_on_route_off(struct leo_hifi *lh)
+ {
++    int restored = 0;
++    if (lh->vol_applied || lh->vol_restore_pending)
++        restored = leo_hifi_restore_volume_floor(lh);
+     lh->generation++;
+     lh->evidence = 0;
+     pthread_mutex_lock(&lh->telemetry_lock);
+     leo_flow_reset(&lh->flow);
+     pthread_mutex_unlock(&lh->telemetry_lock);
+     lh->bypass = 0;
+-    lh->effective = LEO_HIFI_IDLE;
++    lh->effective = restored == 0 ? LEO_HIFI_IDLE : LEO_HIFI_ERROR_FALLBACK;
+     ALOGI("%s: gen=%llu -> idle", __func__, lh->generation);
+ }
+ 
+ static void leo_hifi_eval_state(struct leo_hifi *lh, bool *out_live, bool *out_flow) {
+     *out_live = false;
+     *out_flow = false;
+-    if (!lh->supported || lh->effective != LEO_HIFI_ACTIVE || lh->fail_code != LEO_FAIL_NONE || !leo_ess_bound())
++    if (!lh->supported || !lh->requested || lh->vol_restore_pending || lh->effective != LEO_HIFI_ACTIVE || lh->fail_code != LEO_FAIL_NONE || !leo_ess_bound())
+         return;
+         
+     int vol0 = -1, vol1 = -1;
+@@ -751,7 +791,7 @@
+     return -EINVAL;
+ }
+ 
+-void leo_hifi_status_string(struct leo_hifi *lh, char *buf, size_t len)
++int leo_hifi_status_string(struct leo_hifi *lh, char *buf, size_t len)
+ {
+     const char *sign = "";
+     int vol0 = -1, vol1 = -1, whole = 0, tenth = 0;
+@@ -786,12 +826,13 @@
+     current_session = lh->session;
+     pthread_mutex_unlock(&lh->telemetry_lock);
+ 
+-    snprintf(buf, len,
+-             "schema=3;session=%llu;gen=%llu;supported=%d;requested=%s;"
+-             "effective=%s;live=%d;flow=%d;vol_ctl_l=%d;vol_ctl_r=%d;"
+-             "vol_db=%s%d.%d;vol_user=%d;backend=%s;fail=%d;"
+-             "permanent_fail=%d;probes=%d;ev=0x%x;bypass=0x%x;vol_applied=%d;"
+-             "acdb=absent_expected",
++    if (!buf || len == 0) return -EINVAL;
++    int n = snprintf(buf, len,
++             "schema:4,session:%llu,gen:%llu,supported:%d,requested:%s,"
++             "effective:%s,live:%d,flow:%d,vol_ctl_l:%d,vol_ctl_r:%d,"
++             "vol_db:%s%d.%d,vol_user:%d,backend:%s,fail:%d,"
++             "permanent_fail:%d,probes:%d,ev:0x%x,bypass:0x%x,vol_applied:%d,"
++             "restore_pending:%d,acdb:absent_expected",
+              current_session, lh->generation, lh->supported ? 1 : 0,
+              lh->requested ? "hifi" : "standard",
+              leo_state_name(lh->effective),
+@@ -799,7 +840,13 @@
+              vol0, vol1, sign, whole, tenth, lh->vol_user,
+              backend_str, lh->fail_code,
+              lh->permanent_fail ? 1 : 0, lh->probe_attempts,
+-             lh->evidence, lh->bypass, lh->vol_applied ? 1 : 0);
++             lh->evidence, lh->bypass, lh->vol_applied ? 1 : 0,
++             lh->vol_restore_pending ? 1 : 0);
++    if (n < 0 || (size_t)n >= len) {
++        buf[0] = '\0'; /* Never publish a truncated, partially valid status. */
++        return -ENOSPC;
++    }
++    return 0;
+ }
+ 
+ unsigned long long leo_hifi_flow_token(struct leo_hifi *lh)
+--- a/hal/msm8974/leo_hifi.h
++++ b/hal/msm8974/leo_hifi.h
+@@ -125,6 +125,7 @@
+ 
+     int                 vol_user;       /* 0..LEO_HIFI_VOL_MAX                   */
+     bool                vol_applied;    /* false until we have written "Volume"  */
++    bool                vol_restore_pending; /* only clear after verified 205/205 */
+ 
+     const char         *device_name;    /* device_table entry, for the self-check */
+     struct mixer       *mixer;
+@@ -143,7 +144,8 @@
+ 
+ /*
+  * Resolve every control we will ever touch and run the device_table
+- * self-check.  Never fails the caller: platform_init() must keep working on a
++ * self-check. After a successful probe, verify/recover the factory volume;
++ * saved user gain is never replayed. Never fails the caller: platform_init() must keep working on a
+  * device without an ES9018, and a failure here must never block Android boot
+  * or ordinary headphone playback.
+  */
+@@ -154,6 +156,8 @@
+  * True when the controller may select the HiFi output device.  Not const:
+  * when the intent is set but a previous probe failed transiently this performs
+  * one bounded, read-only re-probe (at most LEO_HIFI_PROBE_MAX per boot).
++ * Successful late binding or pending volume recovery also verifies/restores
++ * the factory floor before route selection. Caller must hold adev->lock.
+  */
+ bool leo_hifi_route_wanted(struct leo_hifi *lh);
+ 
+@@ -191,15 +195,15 @@
+ /*
+  * Clamp, apply and read back.  Returns 0 on success, -EINVAL when the
+  * request is out of range (fail_code LEO_FAIL_VOL_RANGE, value unchanged),
+- * -EIO when the write or the read-back failed (control is restored to
+- * LEO_HIFI_CTL_FLOOR and fail_code is LEO_FAIL_READBACK_SOFT).
++ * -EIO when the write or readback fails. Recovery to LEO_HIFI_CTL_FLOOR is
++ * attempted; vol_restore_pending remains true if it cannot be confirmed.
+  *
+  * Large jumps are split into bounded frames; the ES9018 has its own
+  * "Volume Ramp Rate" but we do not rely on it alone.
+  */
+ int leo_hifi_apply_volume(struct leo_hifi *lh, int user_vol);
+ 
+-/* Force the control back to the mixer_paths.xml default (205, -25.0 dB). */
++/* Verify/restore 205/205. Never clear vol_restore_pending on an unproven write. */
+ int leo_hifi_restore_volume_floor(struct leo_hifi *lh);
+ 
+ /* ---------------------------------------------------------------------- *
+@@ -295,7 +299,8 @@
+ void leo_hifi_on_route_off(struct leo_hifi *lh);
+ 
+ /* Render the read-only status snapshot into buf (never fails). */
+-void leo_hifi_status_string(struct leo_hifi *lh, char *buf, size_t len);
++/* Schema4 inner payload; return 0 only for complete output, otherwise empty. */
++int leo_hifi_status_string(struct leo_hifi *lh, char *buf, size_t len);
+ 
+ int leo_hifi_process_request(struct leo_hifi *lh, const char *mode_str, const char *vol_str, const char *sess_str, const char *gen_str, bool *mode_changed);
+ 
+--- a/hal/msm8974/platform.c
++++ b/hal/msm8974/platform.c
+@@ -3252,8 +3252,8 @@
+          * fields are reported as -1 / "unconfirmed"; we never fill in a guess,
+          * and the UI must not infer effective state from requested state.
+          */
+-        leo_hifi_status_string(&my_data->leo, status, sizeof(status));
+-        str_parms_add_str(reply, LEO_PARAM_KEY_STATUS, status);
++        if (leo_hifi_status_string(&my_data->leo, status, sizeof(status)) == 0)
++            str_parms_add_str(reply, LEO_PARAM_KEY_STATUS, status);
+     }
+ #endif
+ 

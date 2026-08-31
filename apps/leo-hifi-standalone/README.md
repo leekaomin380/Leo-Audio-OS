@@ -1,3 +1,5 @@
+> 2026-08-31 日用候选更新：当前源码为 schema4 普通应用，已增加前台状态监测与可过期的 HIFI 工作通知。构建要求官方 API29 android.jar，可通过 ANDROID_API_JAR 指定；输出为 build/run.*/leo-hifi-daily-candidate.apk。当前没有正式 HAL 产物，不能作为完整日用版本验收。见 ../../docs/verification/2026-08-31-daily-v1-checkpoint.md。下文 Stage 1 是历史验证方案。
+
 # leo-hifi-standalone —— Stage 1 验证应用
 
 **这是一个普通应用。**非特权、非平台签名、用一次性 debug key 签，`adb install` 装、`adb uninstall` 卸。

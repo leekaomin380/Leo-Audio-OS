@@ -29,6 +29,7 @@ public final class LeoHifiTileService extends TileService implements LeoHifiCont
     @Override
     public void onStartListening() {
         super.onStartListening();
+        LeoHifiMonitorService.start(this);
         controller = LeoHifiController.get(this);
         controller.addCallback(this);
         controller.refresh();

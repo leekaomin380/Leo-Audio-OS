@@ -56,7 +56,7 @@ bad()  { printf '  [FAIL] %s\n' "$*" >&2; }
 die()  { bad "$*"; exit 1; }
 
 need() { # need <description> <expected> <actual>
-  if [ "$2" = "$3" ]; then ok "$1"
+  if [ -n "$2" ] && [ -n "$3" ] && [ "$2" = "$3" ]; then ok "$1"
   else bad "$1"; printf '         期望: %s\n         实际: %s\n' "$2" "$3" >&2; return 1; fi
 }
 
@@ -67,32 +67,37 @@ need_ge() { # need_ge <description> <min> <actual>
   else bad "$1"; printf '         期望 >= %s，实际: %s\n' "$2" "$3" >&2; return 1; fi
 }
 
-hal_sha()   { sh_ "sha256sum $HAL" | cut -d' ' -f1; }
-hal_ctx()   { sh_ "ls -Z $HAL" | grep -oE 'u:object_r:[a-zA-Z0-9_]+:s0' | head -1; }
-hal_size()  { sh_ "stat -c %s $HAL"; }
-hal_mode()  { sh_ "stat -c %a $HAL"; }
-hal_owner() { sh_ "stat -c %U $HAL"; }
-hal_inode() { sh_ "stat -c %i $HAL"; }
-volume()    { sh_ 'tinymix Volume' | tr -d '\n'; }
-boot_id()   { sh_ 'cat /proc/sys/kernel/random/boot_id'; }
-hal_pid()   { sh_ 'pidof android.hardware.audio@2.0-service'; }
-as_pid()    { sh_ 'pidof audioserver'; }
-root_mount(){ sh_ "grep -m1 ' / ext4 ' /proc/mounts | sed -E 's/.* ext4 ([^,]+),.*/\\1/'"; }
-
-# 映射行数（宽松判据，仅证明有同名映射）
-hal_mapped(){ sh_ "grep -c 'audio.primary.msm8994' /proc/\$(pidof android.hardware.audio@2.0-service)/maps"; }
-
-# 严格判据：证明服务进程映射的正是磁盘上那个 inode，而不是同名的别的东西，
-# 也不是重启前那个进程遗留的旧映射。Codex §5.B 指出 >=1 只证明"有同名映射"。
-hal_mapped_inode() {
-  sh_ "grep -m1 'audio.primary.msm8994' /proc/\$(pidof android.hardware.audio@2.0-service)/maps | awk '{print \$5}'"
+# Read the complete command result BEFORE parsing. A failing adb cannot emit
+# even an apparently correct value that a later command substitution accepts.
+read_parse() {
+  parser=$1; shift
+  raw=$(sh_ "$@") || return $?
+  printf '%s' "$raw" | python3 "$HERE/readback.py" "$parser"
 }
-
-# 进程身份：pid + starttime（/proc/<pid>/stat 第 22 字段）。
-# 只比 pid 会被 pid 复用骗过；starttime 一起比才能证明确实是新进程。
-proc_ident() { # proc_ident <pid>
-  [ -n "$1" ] || { printf 'none'; return 1; }
-  sh_ "cat /proc/$1/stat 2>/dev/null | awk '{print \$1\":\"\$22}'"
+read_raw() {
+  raw=$(sh_ "$@") || return $?
+  [ -n "$raw" ] || return 1
+  printf '%s' "$raw"
+}
+hal_sha()   { read_parse sha "sha256sum $HAL"; }
+hal_ctx()   { read_parse context "ls -Z $HAL"; }
+hal_size()  { read_parse positive "stat -c %s $HAL"; }
+hal_mode()  { read_raw "stat -c %a $HAL"; }
+hal_owner() { read_raw "stat -c %U $HAL"; }
+hal_inode() { read_parse inode "stat -c %d:%i $HAL"; }
+volume()    { read_raw 'tinymix Volume'; }
+boot_id()   { read_raw 'cat /proc/sys/kernel/random/boot_id'; }
+hal_pid()   { read_parse positive 'pidof android.hardware.audio@2.0-service'; }
+as_pid()    { read_parse positive 'pidof audioserver'; }
+root_mount(){ read_parse mount 'cat /proc/mounts'; }
+hal_mapped_inode() {
+  pid=$(hal_pid) || return $?
+  read_parse maps "cat /proc/$pid/maps"
+}
+proc_ident() {
+  case "$1" in ''|*[!0-9]*|0) return 1;; esac
+  ident=$(read_parse identity "cat /proc/$1/stat") || return $?
+  case "$ident" in "$1":*) printf '%s' "$ident";; *) return 1;; esac
 }
 
 preflight() {
@@ -129,25 +134,44 @@ postcheck() { # postcheck <expected_sha>
   return $rc
 }
 
+# Never overwrite an inode that an audio service may still have mapped.
+# Finish content/attributes on a sibling, then rename within the same mount.
+replace_hal() { # replace_hal <device_source> <expected_sha>
+  stage="$HAL.leo-stage-$$"
+  shx_ "test ! -e $stage" >/dev/null || return 1
+  shx_ "cp -f $1 $stage" >/dev/null || { sh_ "rm -f $stage" >/dev/null; return 1; }
+  stage_sha=$(read_parse sha "sha256sum $stage") || { sh_ "rm -f $stage" >/dev/null; return 1; }
+  if [ "$stage_sha" != "$2" ]; then sh_ "rm -f $stage" >/dev/null; return 1; fi
+  shx_ "chown $OWNER:$OWNER $stage" >/dev/null &&
+  shx_ "chmod $MODE $stage" >/dev/null &&
+  shx_ "chcon $CTX $stage" >/dev/null &&
+  shx_ "mv -f $stage $HAL" >/dev/null &&
+  shx_ sync >/dev/null && return 0
+  sh_ "rm -f $stage" >/dev/null
+  return 1
+}
+
 # 重启服务并证明确实换了进程。
 # 2026-08-31 修订：此前只看 init.svc.* 是否 running 且 pid 非空，
 # 于是"重启请求失败但旧进程仍在跑"会被判成功（Codex §5.B 实测复现）。
 # 现在强制要求 pid+starttime 组成的身份发生变化。
 service_cycle() {
-  before_as=$(as_pid); before_hal=$(hal_pid)
-  before_as_id=$(proc_ident "$before_as"); before_hal_id=$(proc_ident "$before_hal")
+  before_as=$(as_pid) || return 1; before_hal=$(hal_pid) || return 1
+  before_as_id=$(proc_ident "$before_as") || return 1
+  before_hal_id=$(proc_ident "$before_hal") || return 1
   say "  重启 audioserver（其 init 规则含 onrestart restart vendor.audio-hal-2-0，会级联）"
   say "  重启前身份: audioserver=$before_as_id  hal=$before_hal_id"
   sh_ 'setprop ctl.restart audioserver' >/dev/null
   if [ $LAST_ADB_RC -ne 0 ]; then bad "setprop ctl.restart 调用失败 (rc=$LAST_ADB_RC)"; return 1; fi
   i=0
-  while [ $i -lt 30 ]; do
-    sleep 1; i=$((i+1))
-    now_as=$(as_pid); now_hal=$(hal_pid)
+  while [ $i -lt "${LEO_SERVICE_WAIT_STEPS:-30}" ]; do
+    sleep "${LEO_SERVICE_WAIT_INTERVAL:-1}"; i=$((i+1))
+    now_as=$(as_pid) || continue; now_hal=$(hal_pid) || continue
     [ -n "$now_as" ] && [ -n "$now_hal" ] || continue
     [ "$(sh_ 'getprop init.svc.audioserver')" = running ] || continue
     [ "$(sh_ 'getprop init.svc.vendor.audio-hal-2-0')" = running ] || continue
-    now_as_id=$(proc_ident "$now_as"); now_hal_id=$(proc_ident "$now_hal")
+    now_as_id=$(proc_ident "$now_as") || continue
+    now_hal_id=$(proc_ident "$now_hal") || continue
     # 身份必须变化，否则说明重启根本没发生，只是旧进程还活着。
     if [ "$now_as_id" != "$before_as_id" ] && [ "$now_hal_id" != "$before_hal_id" ]; then
       say "  重启后身份: audioserver=$now_as_id  hal=$now_hal_id"

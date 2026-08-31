@@ -1,19 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.leoaudio.hifi"
-    android:versionCode="1"
-    android:versionName="0.1-stage1">
+    android:versionCode="4"
+    android:versionName="0.2-daily-candidate">
 
     <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="29" />
 
     <!-- protectionLevel=normal on this ROM; AudioFlinger::setParameters gates on it. -->
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:label="@string/leo_hifi_label"
         android:icon="@drawable/ic_leo_hifi"
         android:directBootAware="true"
         android:allowBackup="false">
+
+        <service android:name=".LeoHifiMonitorService" android:exported="false" />
+        <receiver android:name=".LeoHifiBootReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
         <service
             android:name=".LeoHifiTileService"

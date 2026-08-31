@@ -36,7 +36,7 @@ say "== 1. 双份备份 =="
 shx_ "mkdir -p /data/local/tmp" >/dev/null || die "mkdir 失败"
 shx_ "cp -f $HAL $DEV_BACKUP"   >/dev/null || die "设备内备份写入失败"
 need "设备内备份 hash" "$STOCK_SHA" "$(sh_ "sha256sum $DEV_BACKUP" | cut -d' ' -f1)" || die "设备内备份校验失败"
-ok "主机副本已在 $HOST_STOCK（前置已验 hash）"
+ok "主机副本已在 ${HOST_STOCK}（前置已验 hash）"
 
 say
 say "== 2. 推入候选并在设备上验 hash =="
@@ -46,10 +46,7 @@ need "推入后设备侧 hash" "$CAND_SHA" "$(sh_ 'sha256sum /data/local/tmp/can
 say
 say "== 3. 写入 system 分区 =="
 shx_ 'mount -o rw,remount /' >/dev/null || die "remount rw 失败"
-shx_ "cp -f /data/local/tmp/cand.so $HAL" >/dev/null || { bad "写入失败"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
-shx_ "chown $OWNER:$OWNER $HAL" >/dev/null || { bad "chown 失败"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
-shx_ "chmod $MODE $HAL"         >/dev/null || { bad "chmod 失败"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
-shx_ "chcon $CTX $HAL"          >/dev/null || { bad "chcon 失败"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
+replace_hal /data/local/tmp/cand.so "$CAND_SHA" || { bad "原子替换失败"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
 shx_ 'mount -o ro,remount /'    >/dev/null || { bad "remount ro 失败——分区仍可写"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
 postcheck "$CAND_SHA" || { bad "落盘核验失败"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
 

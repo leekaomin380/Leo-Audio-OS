@@ -1,3 +1,5 @@
+> 2026-08-31 安全修订：严格读回/进程身份/设备号+inode，原子替换 HAL 文件，18 项有故障命中确认的隔离空跑。无改动回退也检查音量和实际映射。命令入口仍默认指向历史 schema3 诊断产物；不等于正式构建准入，也不是日用 schema4 安装器。未取得新产物的正式构建证据前不要执行部署。详见 ../../docs/verification/2026-08-31-daily-v1-checkpoint.md。
+
 # Stage 2 —— schema3 HAL 换装
 
 **未经用户当面授权不得运行 `deploy-hal.sh --i-have-authorization`。**
