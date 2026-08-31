@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="leo_hifi_label">HIFI</string>
+    <string name="leo_hifi_unavailable">后端不可用</string>
+    <string name="leo_hifi_waiting">等待确认</string>
+    <string name="leo_hifi_active">ESS 播放中 · 48 kHz</string>
+    <string name="leo_hifi_error">请求或路由异常</string>
+    <string name="leo_hifi_volume_title">HiFi DAC 音量</string>
+    <string name="leo_hifi_apply">应用所选音量</string>
+    <string name="leo_hifi_not_active">通过 HiFi 播放后可调节</string>
+    <string name="leo_hifi_standby">已开启 · 待机</string>
+    <string name="leo_hifi_off">已关闭</string>
+    <string name="leo_hifi_volume_warning">0 不是静音。拖动滑块不会改变音量。应用任意数值都可能高于出厂音量，请从低音量开始。</string>
+    <string name="leo_hifi_volume_readback">选择：%1$d / 60 · DAC 回读：%2$d / %3$d</string>
+</resources>
