@@ -8373,5 +8373,15 @@
       "commit": "4fcd70ff1fe6e1f5b6e29159c94a0760c646785b",
       "status": "resolved"
     }
+  ],
+  "manifest_corrections": [
+    {
+      "destination": "frameworks/support/README.md",
+      "original_project": "sdk",
+      "corrected_project": "prebuilts/sdk",
+      "source": "current/androidx-README.md",
+      "reason": "Original MoKee manifest attaches this link to sdk, where its source is absent. The pinned prebuilts/sdk checkout contains the file. All 783 source revisions are unchanged.",
+      "source_blob": "b7ac07ed1ed1ffc43e12662ae419258c36d56bc7"
+    }
   ]
 }

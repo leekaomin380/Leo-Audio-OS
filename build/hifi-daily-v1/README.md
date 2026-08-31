@@ -36,6 +36,8 @@
 
 ## 仅在现有主机不能完成时考虑云资源
 
+21:50 补充：完整 783 项同步及源码核验已通过。baseline 第一次尝试在 copy/link 核验时停止：原 MoKee manifest 将 `frameworks/support/README.md` 的来源错误地挂在 `sdk/current/androidx-README.md`。已核实原始输入文件也如此，正确文件存在于锁定的 `prebuilts/sdk`，Git blob 为 `b7ac07ed1ed1ffc43e12662ae419258c36d56bc7`。本清单仅将这一 linkfile 移到正确项目下，`source-lock.json` 记录修正；783 项源码记录完全不变。第一次失败证据保留，修正后使用新的 baseline 输出目录。
+
 建议临时云构建的**预算上限为人民币 100 元，尚未获得金额确认**；这不是成交报价。购买前必须核对实例、系统盘/数据盘、网络和公网 IP 的总价与库存，并绑定运行时间上限与退出策略。仅关机可能继续收磁盘/IP 费用；完成后先回收并校验产物和必要日志，再释放本次新建资源。不启用自动续费，不删除用户原有资源。
 
 网络不可只看“入站免费”。腾讯云的[带宽说明](https://cloud.tencent.com/document/product/213/43793)与[网络价格](https://cloud.tencent.com/document/product/213/113026)需结合所选实例核实；不采用“免费即不限速”的旧估算。100GB 在 10Mbps 下理想传输下限约 22.2 小时，不能按短时构建估价。

@@ -581,13 +581,13 @@
   <project path="prebuilts/python/linux-x86/2.7.5" name="platform/prebuilts/python/linux-x86/2.7.5" groups="linux,pdk,pdk-cw-fs,pdk-fs" clone-depth="1" remote="aosp" revision="53add29eb7b4eaa9e128e3ec84eac9e65cf4c986" upstream="refs/tags/android-10.0.0_r41" />
   <project path="prebuilts/qemu-kernel" name="platform/prebuilts/qemu-kernel" groups="pdk" clone-depth="1" remote="aosp" revision="f05cc74df3ac03c38fc5325305adccae811e0fc6" upstream="refs/tags/android-10.0.0_r41" />
   <project path="prebuilts/r8" name="MoKee/android_prebuilts_r8" groups="pdk" clone-depth="1" revision="6ef1b5ec49cdcea431b8cfffaabeea83a75027b7" upstream="refs/heads/mkq-mr1" />
-  <project path="prebuilts/sdk" name="platform/prebuilts/sdk" groups="pdk" clone-depth="1" remote="aosp" revision="c6f37f82dae6892950a13c25e0794e513ddabd57" upstream="refs/tags/android-10.0.0_r41" />
+  <project path="prebuilts/sdk" name="platform/prebuilts/sdk" groups="pdk" clone-depth="1" remote="aosp" revision="c6f37f82dae6892950a13c25e0794e513ddabd57" upstream="refs/tags/android-10.0.0_r41">
+    <linkfile src="current/androidx-README.md" dest="frameworks/support/README.md" />
+  </project>
   <project path="prebuilts/tools" name="platform/prebuilts/tools" groups="pdk,tools" clone-depth="1" remote="aosp" revision="f5f261a4af3b155ce21aee134fd2df615a6b27a2" upstream="refs/tags/android-10.0.0_r41" />
   <project path="prebuilts/vndk/v27" name="platform/prebuilts/vndk/v27" groups="pdk" clone-depth="1" remote="aosp" revision="e12bf1097ebadbd1ad4cf7efea393d042298bf18" upstream="refs/tags/android-10.0.0_r41" />
   <project path="prebuilts/vndk/v28" name="platform/prebuilts/vndk/v28" groups="pdk" clone-depth="1" remote="aosp" revision="f3e3510f142b99c6b9dd3d9e434971d6a4e56d37" upstream="refs/tags/android-10.0.0_r41" />
-  <project path="sdk" name="platform/sdk" groups="pdk-cw-fs,pdk-fs" remote="aosp" revision="d40ca99b08984704448e04c6672ab9169e7ce924" upstream="refs/tags/android-10.0.0_r41">
-    <linkfile src="current/androidx-README.md" dest="frameworks/support/README.md" />
-  </project>
+  <project path="sdk" name="platform/sdk" groups="pdk-cw-fs,pdk-fs" remote="aosp" revision="d40ca99b08984704448e04c6672ab9169e7ce924" upstream="refs/tags/android-10.0.0_r41" />
   <project path="system/apex" name="platform/system/apex" groups="pdk" remote="aosp" revision="a41373acd02cc04e2ffa4088eb6ee0a964fd3dec" upstream="refs/tags/android-10.0.0_r41" />
   <project path="system/ashmemd" name="platform/system/ashmemd" groups="pdk" remote="aosp" revision="540d579f3079b1796414f12118632c6adc9387e3" upstream="refs/tags/android-10.0.0_r41" />
   <project path="system/bt" name="MoKee/android_system_bt" groups="pdk" revision="6a20f1d99faa01e8a5898d4a918e3db94981a814" upstream="refs/heads/mkq-mr1" />
