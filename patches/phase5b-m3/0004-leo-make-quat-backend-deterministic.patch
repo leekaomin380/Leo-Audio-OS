@@ -1,0 +1,247 @@
+From: Leo Audio OS <leo-audio-os@localhost>
+Date: 2026-08-29
+Subject: [PATCH 4/5] leo: make the QUAT_MI2S backend deterministic
+
+"Not writing" is not the same as "correct".
+
+Disassembly of the stock MIUI HAL shows that its
+platform_check_and_set_codec_backend_cfg() returns without touching
+anything whenever usecase->id != 3, and grep over this whole tree shows
+that nothing here writes QUAT_MI2S BitWidth / SampleRate at all.  Nothing
+resets them on teardown either, so a single non-48 kHz session would leave
+the backend at the wrong rate for every subsequent deep-buffer stream.
+
+This patch makes both edges explicit and puts the entry hook where the NEW
+device is actually visible:
+
+  * entry: enable_snd_device() -> platform_leo_hifi_snd_device_enabled(),
+    which runs after usecase teardown and before enable_audio_route()
+    starts the DAI;
+  * exit: disable_audio_route() -> platform_leo_hifi_backend_exit(), which
+    runs while usecase->out_snd_device still holds the old device.
+
+An earlier draft hooked platform_check_and_set_codec_backend_cfg() and
+guarded on usecase->out_snd_device.  That was wrong: select_devices()
+assigns usecase->out_snd_device only after check_and_route_playback_
+usecases() has run, so the guard tested the previous device and fired on
+exit instead of entry.  Fixed here.
+
+Stage 1 pins the 48 kHz clock family on purpose.  44.1 kHz passthrough is
+M3.5 and must not be attempted here: with the front end still at 48 kHz,
+setting the backend to 44.1 only moves the SRC into the ADSP and exercises
+an unverified LPASS slave clock path.
+Baseline: MoKee/android_hardware_qcom_audio
+          mkq-mr1-caf-msm8994 @ 7f4cac748b6f62897294cdaece9d1aec27e1e927
+---
+--- a/hal/msm8974/leo_hifi.h
++++ b/hal/msm8974/leo_hifi.h
+@@ -194,5 +194,44 @@
+ /* Force the control back to the mixer_paths.xml default (205, -25.0 dB). */
+ int leo_hifi_restore_volume_floor(struct leo_hifi *lh);
+ 
++/* ---------------------------------------------------------------------- *
++ * Deterministic QUAT_MI2S backend
++ * ---------------------------------------------------------------------- */
+ 
++/*
++ * Stage-1 targets.  M3 pins the backend at the 48 kHz clock family; 44.1 kHz
++ * is M3.5 and must not be attempted here.  "Leaving the control alone" is NOT
++ * equivalent to "correct": upstream has no teardown reset for these controls,
++ * so a previous non-48 kHz session can leave a stale value behind.
++ *
++ * Nothing else in the HAL writes QUAT_MI2S BitWidth / SampleRate (verified by
++ * grep over the whole hardware/qcom-caf/msm8994/audio tree at 7f4cac74), and
++ * the kernel machine driver samples both kcontrols at hw_params time, i.e.
++ * when the QUAT DAI starts.  The write must therefore happen BEFORE the mixer
++ * path that enables QUAT_MI2S_RX is applied.
++ */
++#define LEO_HIFI_BITWIDTH_STR       "S24_LE"
++#define LEO_HIFI_SAMPLERATE_STR     "KHZ_48"
++
++/*
++ * Write BitWidth then SampleRate and read both back.  Returns 0 only when
++ * both read-backs match.  Idempotent, so repeated calls across several
++ * usecases on the same device are harmless.
++ */
++int leo_hifi_set_backend(struct leo_hifi *lh);
++
++/*
++ * Entry hook, called from enable_snd_device() with the NEW device.
++ *
++ * It must not be called from platform_check_and_set_codec_backend_cfg():
++ * at that point select_devices() has not yet assigned usecase->out_snd_device,
++ * so the usecase still carries the PREVIOUS device and the guard would test
++ * the wrong edge.
++ */
++void platform_leo_hifi_snd_device_enabled(void *platform, int snd_device);
++
++/* Exit-side hook called from disable_audio_route(); never blocks teardown. */
++void platform_leo_hifi_backend_exit(void *platform, int snd_device);
++
++
+ #endif /* LEO_HIFI_H */
+--- a/hal/msm8974/leo_hifi.c
++++ b/hal/msm8974/leo_hifi.c
+@@ -357,9 +357,55 @@
+     lh->vol_applied = true;
+     snprintf(buf, sizeof(buf), "%d", user_vol);
+     (void) property_set(LEO_PROP_VOLUME, buf);
++    return 0;
++}
++
++static int leo_set_enum_checked(struct leo_hifi *lh, struct mixer_ctl *ctl,
++                                const char *ctl_name, const char *want)
++{
++    const char *got;
++    int idx;
++    int ret;
++
++    if (ctl == NULL)
++        return -ENODEV;
++
++    ret = mixer_ctl_set_enum_by_string(ctl, want);
++    if (ret != 0) {
++        ALOGE("%s: '%s' <- '%s' failed (%d)", __func__, ctl_name, want, ret);
++        lh->fail_code = LEO_FAIL_CTL_WRITE;
++        return -EIO;
++    }
++
++    idx = mixer_ctl_get_value(ctl, 0);
++    got = (idx >= 0) ? mixer_ctl_get_enum_string(ctl, (unsigned int)idx) : NULL;
++    if (got == NULL || strcmp(got, want) != 0) {
++        ALOGE("%s: '%s' read-back '%s' != '%s'", __func__, ctl_name,
++              got ? got : "(null)", want);
++        lh->fail_code = LEO_FAIL_BACKEND_READBACK;
++        return -EIO;
++    }
++
++    ALOGI("%s: '%s' = '%s' (read back)", __func__, ctl_name, want);
+     return 0;
+ }
+ 
++int leo_hifi_set_backend(struct leo_hifi *lh)
++{
++    int ret;
++
++    if (!lh->supported)
++        return -ENODEV;
++
++    ret = leo_set_enum_checked(lh, lh->ctl_quat_bw, "QUAT_MI2S BitWidth",
++                               LEO_HIFI_BITWIDTH_STR);
++    if (ret != 0)
++        return ret;
++
++    return leo_set_enum_checked(lh, lh->ctl_quat_sr, "QUAT_MI2S SampleRate",
++                                LEO_HIFI_SAMPLERATE_STR);
++}
++
+ bool leo_hifi_set_mode(struct leo_hifi *lh, bool enable)
+ {
+     bool old = lh->requested;
+--- a/hal/msm8974/platform.c
++++ b/hal/msm8974/platform.c
+@@ -3522,6 +3522,61 @@
+     return backend_change;
+ }
+ 
++#ifdef LEO_HIFI_ENABLED
++/*
++ * Leo: entry-side backend configuration, called from enable_snd_device() with
++ * the NEW sound device.
++ *
++ * It deliberately does NOT live in platform_check_and_set_codec_backend_cfg().
++ * select_devices() calls check_and_route_playback_usecases() -- and therefore
++ * that function -- BEFORE it assigns usecase->out_snd_device, so at that point
++ * the usecase still carries the previous device and a guard on it would fire
++ * on the wrong edge (never on entry, always on exit).
++ *
++ * Order inside select_devices():
++ *      disable_audio_route(old)            <- exit hook runs here
++ *      disable_snd_device(old)
++ *      check_and_route_playback_usecases(new)
++ *      enable_snd_device(new)              <- THIS hook runs here
++ *      usecase->out_snd_device = new
++ *      enable_audio_route(new)             <- QUAT DAI actually starts here
++ *
++ * The kernel machine driver samples QUAT_MI2S BitWidth / SampleRate at
++ * hw_params time, i.e. when the mixer path started by enable_audio_route()
++ * brings the DAI up.  Writing here is therefore both early enough and not too
++ * early; the controls are static kcontrols that exist from card registration.
++ */
++void platform_leo_hifi_snd_device_enabled(void *platform, int snd_device)
++{
++    struct platform_data *my_data = (struct platform_data *)platform;
++
++    if (my_data == NULL || snd_device != SND_DEVICE_OUT_LEO_HIFI_HEADPHONES)
++        return;
++
++    if (leo_hifi_set_backend(&my_data->leo) != 0)
++        ALOGE("%s: could not pin the QUAT backend to %s/%s; the route will be "
++              "reported as degraded", __func__,
++              LEO_HIFI_BITWIDTH_STR, LEO_HIFI_SAMPLERATE_STR);
++}
++
++/*
++ * Leo: exit-side backend restore, called from disable_audio_route(), which
++ * runs while usecase->out_snd_device still holds the OLD device.
++ * Deliberately tolerant -- a failure must never block stream teardown.
++ */
++void platform_leo_hifi_backend_exit(void *platform, int snd_device)
++{
++    struct platform_data *my_data = (struct platform_data *)platform;
++
++    if (my_data == NULL || snd_device != SND_DEVICE_OUT_LEO_HIFI_HEADPHONES)
++        return;
++
++    if (leo_hifi_set_backend(&my_data->leo) != 0)
++        ALOGW("%s: could not restore QUAT backend to %s/%s", __func__,
++              LEO_HIFI_BITWIDTH_STR, LEO_HIFI_SAMPLERATE_STR);
++}
++#endif
++
+ bool platform_check_and_set_codec_backend_cfg(struct audio_device* adev, struct audio_usecase *usecase)
+ {
+     ALOGV("platform_check_and_set_codec_backend_cfg usecase = %d",usecase->id );
+--- a/hal/audio_hw.c
++++ b/hal/audio_hw.c
+@@ -66,6 +66,9 @@
+ #include <audio_effects/effect_ns.h>
+ #include "audio_hw.h"
+ #include "platform_api.h"
++#ifdef LEO_HIFI_ENABLED
++#include "leo_hifi.h"
++#endif
+ #include <platform.h>
+ #include "audio_extn.h"
+ #include "voice_extn.h"
+@@ -575,6 +578,15 @@
+     platform_add_backend_name(mixer_path, snd_device);
+     ALOGD("%s: reset and update mixer path: %s", __func__, mixer_path);
+     audio_route_reset_and_update_path(adev->audio_route, mixer_path);
++#ifdef LEO_HIFI_ENABLED
++    /*
++     * Leo: restore the QUAT backend deterministically after the route is torn
++     * down.  Upstream never resets these controls, so without this a non-48
++     * kHz session would leave the backend at the wrong rate for the next
++     * deep-buffer stream.
++     */
++    platform_leo_hifi_backend_exit(adev->platform, (int)snd_device);
++#endif
+     audio_extn_sound_trigger_update_stream_status(usecase, ST_EVENT_STREAM_FREE);
+     audio_extn_listen_update_stream_status(usecase, LISTEN_EVENT_STREAM_FREE);
+     ALOGV("%s: exit", __func__);
+@@ -606,6 +618,14 @@
+         return 0;
+     }
+ 
++#ifdef LEO_HIFI_ENABLED
++    /*
++     * Leo: pin the QUAT backend before the mixer path starts the DAI.  This is
++     * the first point in select_devices() that sees the NEW device.
++     */
++    platform_leo_hifi_snd_device_enabled(adev->platform, (int)snd_device);
++#endif
++
+     if (audio_extn_spkr_prot_is_enabled())
+          audio_extn_spkr_prot_calib_cancel(adev);
+     /* start usb playback thread */

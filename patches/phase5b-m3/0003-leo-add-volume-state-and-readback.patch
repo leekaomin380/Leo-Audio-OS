@@ -1,0 +1,234 @@
+From: Leo Audio OS <leo-audio-os@localhost>
+Date: 2026-08-29
+Subject: [PATCH 3/5] leo: add HiFi volume state and read-back
+
+Implements the independent HiFi volume on the ES9018 "Volume" kcontrol.
+
+Kernel-derived facts, read out of the MoKee boot kernel image
+(snd_kcontrol_new -> soc_mixer_control + TLV, base 0xffffffc000080000):
+
+    min = 0, max = 255, reg = 15, rreg = 16, invert = 1
+    TLV = DB_SCALE(min = -127.50 dB, step = 0.50 dB)
+    => dB = -127.50 + 0.50 * ctl_value; higher control value == louder
+    205 = -25.0 dB (mixer_paths.xml default on both MIUI and MoKee)
+    213 = -21.0 dB   225 = -15.0 dB   229 = -13.0 dB   253 = -1.0 dB
+
+Rules enforced here:
+  * hard clamp to [LEO_HIFI_CTL_FLOOR(205), LEO_HIFI_CTL_CEIL(237)];
+  * every write is read back; a mismatch restores 205 and reports
+    LEO_FAIL_READBACK_SOFT;
+  * out-of-range requests are rejected without changing the value
+    (LEO_FAIL_VOL_RANGE);
+  * large changes are applied in bounded frames on top of the codec's own
+    "Volume Ramp Rate";
+  * a failure never blocks boot and never fails set_parameters().
+
+dB logging goes through leo_hifi_ctl_to_db(), which carries the sign
+separately.  Deriving it from the quotient would print "0.5 dB" for
+control value 254 (真值 -0.5 dB) because C integer division truncates
+toward zero -- a log-only defect, but one that would corrupt evidence.
+
+Deliberately NOT changed: platform_init() still does not write "Volume".
+Until R6 and R7 land, the shipping default must leave the control at 205.
+None of 213/225/229 is a product default in this patch.
+Baseline: MoKee/android_hardware_qcom_audio
+          mkq-mr1-caf-msm8994 @ 7f4cac748b6f62897294cdaece9d1aec27e1e927
+---
+--- a/hal/msm8974/leo_hifi.h
++++ b/hal/msm8974/leo_hifi.h
+@@ -155,5 +155,44 @@
+  */
+ bool leo_hifi_set_mode(struct leo_hifi *lh, bool enable);
+ 
++/* ---------------------------------------------------------------------- *
++ * Independent HiFi volume (ES9018 "Volume" kcontrol)
++ * ---------------------------------------------------------------------- */
+ 
++/* ctl = LEO_HIFI_CTL_BASE + (user * 2) / 5   =>   dB = -21.0 + 0.2 * user */
++static inline int leo_hifi_user_to_ctl(int user)
++{
++    return LEO_HIFI_CTL_BASE + (user * 2) / 5;
++}
++
++/*
++ * Exact, sign-safe dB decomposition.  dB = -127.50 + 0.50 * v, so the value in
++ * tenths of a dB is exactly (5 * v - 1275).  Everything is integer: C division
++ * truncates toward zero, which silently drops the sign for values in
++ * (-1.0, 0.0), so the sign is carried separately instead of being derived from
++ * the quotient.  Print with "%s%d.%d" and the returned sign string.
++ */
++void leo_hifi_ctl_to_db(int ctl_value, const char **sign, int *whole, int *tenth);
++
++/*
++ * Read the current control value into out[2].  Returns 0 on success.
++ * Never writes anything.
++ */
++int leo_hifi_read_volume(struct leo_hifi *lh, int out[2]);
++
++/*
++ * Clamp, apply and read back.  Returns 0 on success, -EINVAL when the
++ * request is out of range (fail_code LEO_FAIL_VOL_RANGE, value unchanged),
++ * -EIO when the write or the read-back failed (control is restored to
++ * LEO_HIFI_CTL_FLOOR and fail_code is LEO_FAIL_READBACK_SOFT).
++ *
++ * Large jumps are split into bounded frames; the ES9018 has its own
++ * "Volume Ramp Rate" but we do not rely on it alone.
++ */
++int leo_hifi_apply_volume(struct leo_hifi *lh, int user_vol);
++
++/* Force the control back to the mixer_paths.xml default (205, -25.0 dB). */
++int leo_hifi_restore_volume_floor(struct leo_hifi *lh);
++
++
+ #endif /* LEO_HIFI_H */
+--- a/hal/msm8974/leo_hifi.c
++++ b/hal/msm8974/leo_hifi.c
+@@ -237,6 +237,129 @@
+     return false;
+ }
+ 
++void leo_hifi_ctl_to_db(int ctl_value, const char **sign, int *whole, int *tenth)
++{
++    int dq = ctl_value * 5 - 1275;      /* exact tenths of a dB */
++
++    *sign = (dq < 0) ? "-" : "";
++    if (dq < 0)
++        dq = -dq;
++    *whole = dq / 10;
++    *tenth = dq % 10;
++}
++
++int leo_hifi_read_volume(struct leo_hifi *lh, int out[2])
++{
++    if (!lh->supported || lh->ctl_volume == NULL)
++        return -ENODEV;
++
++    out[0] = mixer_ctl_get_value(lh->ctl_volume, 0);
++    out[1] = mixer_ctl_get_value(lh->ctl_volume, 1);
++    if (out[0] < 0 || out[1] < 0)
++        return -EIO;
++
++    return 0;
++}
++
++static int leo_write_volume_ctl(struct leo_hifi *lh, int ctl_value)
++{
++    int values[2];
++    int back[2];
++    const char *sign;
++    int whole, tenth;
++    int ret;
++
++    /* Hard clamp: never below the factory floor, never above the stage cap. */
++    if (ctl_value < LEO_HIFI_CTL_FLOOR)
++        ctl_value = LEO_HIFI_CTL_FLOOR;
++    if (ctl_value > LEO_HIFI_CTL_CEIL)
++        ctl_value = LEO_HIFI_CTL_CEIL;
++
++    values[0] = values[1] = ctl_value;
++    ret = mixer_ctl_set_array(lh->ctl_volume, values, 2);
++    if (ret != 0) {
++        ALOGE("%s: write %d failed (%d)", __func__, ctl_value, ret);
++        lh->fail_code = LEO_FAIL_CTL_WRITE;
++        return -EIO;
++    }
++
++    if (leo_hifi_read_volume(lh, back) != 0 ||
++        back[0] != ctl_value || back[1] != ctl_value) {
++        ALOGE("%s: read-back mismatch: wrote %d, read %d/%d",
++              __func__, ctl_value, back[0], back[1]);
++        lh->fail_code = LEO_FAIL_READBACK_SOFT;
++        return -EIO;
++    }
++
++    leo_hifi_ctl_to_db(ctl_value, &sign, &whole, &tenth);
++    ALOGI("%s: ES9018 Volume = %d (%s%d.%d dB)", __func__, ctl_value,
++          sign, whole, tenth);
++    return 0;
++}
++
++int leo_hifi_restore_volume_floor(struct leo_hifi *lh)
++{
++    if (!lh->supported || lh->ctl_volume == NULL)
++        return -ENODEV;
++
++    lh->vol_applied = false;
++    return leo_write_volume_ctl(lh, LEO_HIFI_CTL_FLOOR);
++}
++
++int leo_hifi_apply_volume(struct leo_hifi *lh, int user_vol)
++{
++    char buf[PROPERTY_VALUE_MAX];
++    int target, current, step;
++    int back[2];
++
++    if (!lh->supported || lh->ctl_volume == NULL)
++        return -ENODEV;
++
++    if (user_vol < 0 || user_vol > LEO_HIFI_VOL_MAX) {
++        ALOGW("%s: request %d out of [0,%d]; keeping current value",
++              __func__, user_vol, LEO_HIFI_VOL_MAX);
++        lh->fail_code = LEO_FAIL_VOL_RANGE;
++        return -EINVAL;
++    }
++
++    if (leo_hifi_read_volume(lh, back) != 0) {
++        lh->fail_code = LEO_FAIL_READBACK_SOFT;
++        return -EIO;
++    }
++    current = back[0];
++    target = leo_hifi_user_to_ctl(user_vol);
++
++    /* Ramp in bounded frames so a UI drag cannot produce a jump. */
++    step = (LEO_HIFI_VOL_STEP_MAX * 2) / 5;
++    if (step < 1)
++        step = 1;
++
++    while (current != target) {
++        int next;
++
++        if (target > current)
++            next = (target - current > step) ? current + step : target;
++        else
++            next = (current - target > step) ? current - step : target;
++
++        if (leo_write_volume_ctl(lh, next) != 0) {
++            /* Any failure returns the control to the known-safe factory value. */
++            (void) leo_write_volume_ctl(lh, LEO_HIFI_CTL_FLOOR);
++            lh->vol_applied = false;
++            return -EIO;
++        }
++        current = next;
++        if (current != target)
++            usleep(20000);
++    }
++
++    lh->vol_user = user_vol;
++    lh->vol_applied = true;
++    snprintf(buf, sizeof(buf), "%d", user_vol);
++    (void) property_set(LEO_PROP_VOLUME, buf);
++    return 0;
++}
++
+ bool leo_hifi_set_mode(struct leo_hifi *lh, bool enable)
+ {
+     bool old = lh->requested;
+--- a/hal/msm8974/platform.c
++++ b/hal/msm8974/platform.c
+@@ -2879,6 +2879,16 @@
+         goto done;
+     }
+ #ifdef LEO_HIFI_ENABLED
++    err = str_parms_get_str(parms, LEO_PARAM_KEY_VOLUME, value, len);
++    if (err >= 0) {
++        str_parms_del(parms, LEO_PARAM_KEY_VOLUME);
++        /*
++         * A failure here must never fail the whole set_parameters call: the
++         * ES9018 volume is an enhancement, not a precondition for audio.
++         */
++        (void) leo_hifi_apply_volume(&my_data->leo, atoi(value));
++    }
++
+     err = str_parms_get_str(parms, LEO_PARAM_KEY_MODE, value, len);
+     if (err >= 0) {
+         bool enable = (strncmp(value, "true", sizeof("true")) == 0);

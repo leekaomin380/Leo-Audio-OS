@@ -23,6 +23,9 @@ keys/
 *.jks
 *.keystore
 
+# Offline research scratch (targeted shallow downloads, never committed)
+research-cache/
+
 # Local files
 .DS_Store
 .idea/

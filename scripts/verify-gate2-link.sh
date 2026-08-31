@@ -14,6 +14,11 @@ set -euo pipefail
 
 BASE_COMMIT=7f4cac748b6f62897294cdaece9d1aec27e1e927
 LD=${M3_ELF_LD:-/opt/homebrew/bin/ld.lld}
+# M3_FEATURE=on|off   - off drops LEO_HIFI_ENABLED and leo_hifi.c, as a board
+#                       that never sets AUDIO_FEATURE_ENABLED_LEO_HIFI builds.
+# M3_PATCHES=1|0      - 0 builds the pristine tree, for the OFF-vs-stock compare.
+M3_FEATURE=${M3_FEATURE:-on}
+M3_PATCHES=${M3_PATCHES:-1}
 
 [ "$#" -ge 2 ] || { echo "usage: $0 <gate2-workspace> <aosp-headers-root> [run-dir]" >&2; exit 2; }
 G=$(cd "$1" && pwd)
@@ -36,17 +41,19 @@ n=$(ls "$G"/patches/000*.patch 2>/dev/null | wc -l | tr -d ' ')
 
 # ---- 2. isolated tree + patches ---------------------------------------
 cp -R "$G/src/hal-tree" "$RUN/hal-tree"
-for p in "$G"/patches/000*.patch; do
-    git -C "$RUN/hal-tree" apply --check "$p" || fail "patch does not apply: $(basename "$p")"
-    git -C "$RUN/hal-tree" apply "$p"
-done
+if [ "$M3_PATCHES" = 1 ]; then
+    for p in "$G"/patches/000*.patch; do
+        git -C "$RUN/hal-tree" apply --check "$p" || fail "patch does not apply: $(basename "$p")"
+        git -C "$RUN/hal-tree" apply "$p"
+    done
+fi
 
 # ---- 3. compile --------------------------------------------------------
 # HW_VARIANTS_ENABLED is NOT a device-tree switch: hal/Android.mk sets
 # MULTIPLE_HW_VARIANTS_ENABLED unconditionally for the msm8974 B-family block
 # that msm8994 belongs to. Omitting it makes hw_info_init() expand to (0),
 # which kills the platform_init() branch holding audio_route_init().
-DEFS=(-DPLATFORM_MSM8994 -DUSE_VENDOR_EXTN -DLEO_HIFI_ENABLED -DHW_VARIANTS_ENABLED
+DEFS=(-DPLATFORM_MSM8994 -DUSE_VENDOR_EXTN -DHW_VARIANTS_ENABLED
   -DPCM_OFFLOAD_ENABLED -DPCM_OFFLOAD_ENABLED_24 -DFLUENCE_ENABLED
   -DAFE_PROXY_ENABLED -DKPI_OPTIMIZE_ENABLED -DHFP_ENABLED
   -DMULTI_VOICE_SESSION_ENABLED -DCOMPRESS_VOIP_ENABLED
@@ -56,7 +63,8 @@ CFLAGS=(-target armv7a-linux-androideabi -nostdlibinc -D__ANDROID__ -D_GNU_SOURC
   -Werror=implicit-function-declaration -Werror=int-conversion
   -Werror=incompatible-pointer-types -Werror=return-type
   -Wno-unused-variable -Wno-macro-redefined -fPIC -Os -fcommon
-  -D_FORTIFY_SOURCE=2 -fstack-protector-strong)
+  -D_FORTIFY_SOURCE=2 -fstack-protector-strong
+  -ffile-prefix-map="$RUN/hal-tree"=.)
 INC=(-I"$G/kheaders")
 for d in system/core/include system/core/libcutils/include system/core/libprocessgroup/include \
   hardware/libhardware/include system/media/audio/include system/media/audio_effects/include \
@@ -70,9 +78,13 @@ T=$RUN/hal-tree
 INC+=(-I"$T/hal" -I"$T/hal/msm8974" -I"$T/hal/audio_extn" -I"$T/hal/voice_extn")
 
 SRCS=(hal/audio_hw.c hal/voice.c hal/platform_info.c hal/msm8974/platform.c
-  hal/audio_extn/audio_extn.c hal/audio_extn/utils.c hal/msm8974/leo_hifi.c
+  hal/audio_extn/audio_extn.c hal/audio_extn/utils.c
   hal/edid.c hal/audio_extn/hfp.c hal/voice_extn/voice_extn.c
   hal/voice_extn/compress_voip.c hal/msm8974/hw_info.c)
+if [ "$M3_FEATURE" = on ]; then
+    DEFS+=(-DLEO_HIFI_ENABLED)
+    SRCS+=(hal/msm8974/leo_hifi.c)
+fi
 
 B=$H/bionic/libc/arch-common/bionic
 # --gc-sections at link time reclaims the unused atexit/pthread_atfork paths,
@@ -128,8 +140,13 @@ REQUIRED = ['audio_route_init', 'mixer_open', 'dlopen', 'dlsym', 'dlerror',
 missing = [s for s in REQUIRED if s not in n['undef']]
 if missing: bad.append('required references absent (dead code?): %s' % missing)
 
-for s in ('leo_hifi_init', 'leo_hifi_on_route'):
-    if s not in n['defined']: bad.append('M3 symbol not exported: %s' % s)
+import os
+if os.environ.get('M3_FEATURE', 'on') == 'on':
+    for s in ('leo_hifi_init', 'leo_hifi_on_route'):
+        if s not in n['defined']: bad.append('M3 symbol not exported: %s' % s)
+else:
+    leaked = [s for s in n['defined'] if s.startswith('leo_hifi')]
+    if leaked: bad.append('feature OFF but M3 symbols present: %s' % leaked)
 
 pool = set()
 for p in glob.glob(G + '/lib/*.so'): pool |= set(parse(p)['defined'])

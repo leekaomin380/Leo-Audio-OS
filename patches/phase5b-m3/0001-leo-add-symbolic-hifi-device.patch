@@ -1,0 +1,113 @@
+From: Leo Audio OS <leo-audio-os@localhost>
+Date: 2026-08-29
+Subject: [PATCH 1/5] leo: add symbolic HiFi output device
+
+Adds SND_DEVICE_OUT_LEO_HIFI_HEADPHONES as the last entry of the OUT
+range together with its device_table / acdb_device_table /
+snd_device_name_index entries and two C89 compile-time guards.
+
+Everything is behind LEO_HIFI_ENABLED, which patch 0002 defines only when
+a device opts in with AUDIO_FEATURE_ENABLED_LEO_HIFI := true.  With the
+flag off the translation unit is textually identical to upstream, so the
+default-off build can be compared to stock at object level, not merely
+"behaves the same".  Keeping this as its own patch lets the table/enum
+change be regression-tested in isolation (M3-A).
+
+  * appended LAST inside the OUT range, so no existing index moves;
+  * acdb_device_table entry is -1 (no calibration), matching factory
+    behaviour -- borrowing another device's ACDB id is forbidden;
+  * never refer to this device numerically.
+Baseline: MoKee/android_hardware_qcom_audio
+          mkq-mr1-caf-msm8994 @ 7f4cac748b6f62897294cdaece9d1aec27e1e927
+---
+--- a/hal/msm8974/platform.h
++++ b/hal/msm8974/platform.h
+@@ -103,6 +103,17 @@
+     SND_DEVICE_OUT_ANC_HANDSET,
+     SND_DEVICE_OUT_SPEAKER_PROTECTED,
+     SND_DEVICE_OUT_VOICE_SPEAKER_PROTECTED,
++    /*
++     * Leo (Xiaomi Mi Note Pro) only: wired headphone output routed through
++     * QUAT_MI2S -> ES9018K2M -> OPA1612 instead of the WCD9330 headphone amp.
++     *
++     * MUST stay inside the OUT range and MUST be appended last so that no
++     * existing device index moves.  Never refer to this device by a numeric
++     * value: the MIUI log value 34 is SND_DEVICE_OUT_SPEAKER_PROTECTED here.
++     */
++#ifdef LEO_HIFI_ENABLED
++    SND_DEVICE_OUT_LEO_HIFI_HEADPHONES,
++#endif
+     SND_DEVICE_OUT_END,
+ 
+     /*
+--- a/hal/msm8974/platform.c
++++ b/hal/msm8974/platform.c
+@@ -322,6 +322,17 @@
+     [SND_DEVICE_OUT_ANC_HANDSET] = "anc-handset",
+     [SND_DEVICE_OUT_SPEAKER_PROTECTED] = "speaker-protected",
+     [SND_DEVICE_OUT_VOICE_SPEAKER_PROTECTED] = "voice-speaker-protected",
++    /*
++     * Must match the <path name="... hifi-headphones"> family already present
++     * in the Leo device tree mixer_paths.xml (sha256 13db0e6e...4bb4, verified
++     * byte-identical to the stock MIUI file).  Note that only four usecases
++     * have such a path: deep-buffer, low-latency, audio-ull and
++     * compress-offload.  Any other usecase routed here finds no path, so the
++     * controller's E4 read-back is what catches it.
++     */
++#ifdef LEO_HIFI_ENABLED
++    [SND_DEVICE_OUT_LEO_HIFI_HEADPHONES] = "hifi-headphones",
++#endif
+ 
+     /* Capture sound devices */
+     [SND_DEVICE_IN_HANDSET_MIC] = "handset-mic",
+@@ -392,6 +403,21 @@
+ static int backend_bit_width_table[SND_DEVICE_MAX] = {0};
+ 
+ /* ACDB IDs (audio DSP path configuration IDs) for each sound device */
++/*
++ * Leo: structural guards.  C89-compatible compile-time assertions (negative
++ * array size on failure) so they hold regardless of -std.
++ *
++ * Rationale: MIUI numbering differs from this tree (MIUI headphones=6 /
++ * hifi-headphones=34; here line=6 / headphones=7 and 34 is
++ * SND_DEVICE_OUT_SPEAKER_PROTECTED).  Nothing may depend on a literal number.
++ */
++#ifdef LEO_HIFI_ENABLED
++typedef char leo_assert_hifi_dev_in_out_range[
++        (SND_DEVICE_OUT_LEO_HIFI_HEADPHONES < SND_DEVICE_OUT_END) ? 1 : -1];
++typedef char leo_assert_out_in_boundary[
++        (SND_DEVICE_OUT_END == SND_DEVICE_IN_BEGIN) ? 1 : -1];
++#endif
++
+ static int acdb_device_table[SND_DEVICE_MAX] = {
+     [SND_DEVICE_NONE] = -1,
+     [SND_DEVICE_OUT_HANDSET] = 7,
+@@ -429,6 +455,18 @@
+     [SND_DEVICE_OUT_ANC_HANDSET] = 103,
+     [SND_DEVICE_OUT_SPEAKER_PROTECTED] = 124,
+     [SND_DEVICE_OUT_VOICE_SPEAKER_PROTECTED] = 101,
++    /*
++     * Leo: hifi-headphones intentionally has NO ACDB entry.
++     *
++     * Neither the stock MIUI nor the MoKee audio_platform_info*.xml declares
++     * an acdb_id for this device, and the stock MIUI HAL runs the ESS path
++     * with a "device has no ACDB ID" warning.  Absence is factory behaviour.
++     * Do NOT borrow the acdb id of SND_DEVICE_OUT_HEADPHONES or any other
++     * device: that calibration is tuned for the WCD9330 analog chain.
++     */
++#ifdef LEO_HIFI_ENABLED
++    [SND_DEVICE_OUT_LEO_HIFI_HEADPHONES] = -1,
++#endif
+ 
+     [SND_DEVICE_IN_HANDSET_MIC] = 4,
+     [SND_DEVICE_IN_HANDSET_MIC_EXTERNAL] = 4,
+@@ -537,6 +575,9 @@
+     {TO_NAME_INDEX(SND_DEVICE_OUT_ANC_HANDSET)},
+     {TO_NAME_INDEX(SND_DEVICE_OUT_SPEAKER_PROTECTED)},
+     {TO_NAME_INDEX(SND_DEVICE_OUT_VOICE_SPEAKER_PROTECTED)},
++#ifdef LEO_HIFI_ENABLED
++    {TO_NAME_INDEX(SND_DEVICE_OUT_LEO_HIFI_HEADPHONES)},
++#endif
+     {TO_NAME_INDEX(SND_DEVICE_IN_HANDSET_MIC)},
+     {TO_NAME_INDEX(SND_DEVICE_IN_HANDSET_MIC_EXTERNAL)},
+     {TO_NAME_INDEX(SND_DEVICE_IN_HANDSET_MIC_AEC)},

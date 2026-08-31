@@ -1,0 +1,452 @@
+From: Leo Audio OS <leo-audio-os@localhost>
+Date: 2026-08-29
+Subject: [PATCH 5/5] leo: add bypass detection, status and safe fallback
+
+Completes the controller with the parts that decide whether the system may
+claim HiFi at all.
+
+WCD bypass observation.  The chain is
+
+    MultiMediaN -> SLIMBUS_0_RX -> SLIM RXn MUX -> RXn MIX1 INP1
+                -> CLASS_H_DSM MUX -> HPHL DAC Switch -> jack
+
+and the assertion now distinguishes an audible path from a harmless one:
+
+  * FATAL, and only fatal: HPHL DAC Switch is On.  That is the analog
+    outlet, and M2 proved on the real device that cutting it silences the
+    WCD path even while SLIMBUS_0_RX <- MultiMedia5 is still On.
+  * RECORDED, not fatal: a live front end, mux, interpolator input or
+    Class-H mux with the outlet cut.  That is a bypass *attempt*: worth
+    reporting, but not proof of sound.
+
+The earlier draft treated any SLIMBUS front end as fatal.  That was too
+strict: because hw_interface_table puts the ESS on its own backend,
+check_and_route_playback_usecases() deliberately leaves other usecases on
+SLIMBUS, so a notification stream would have killed HiFi outright.
+
+Right-channel coverage: this sound card exposes only one "HPHL DAC
+Switch"; the right DAC is gated through the RX2 chain and CLASS_H_DSM MUX,
+so those are observed too (as optional controls, absent-tolerant).
+
+New evidence bit E4: at least one QUAT_MI2S_RX Audio Mixer MultiMediaN
+must read back On.  Only four usecases have a "<usecase> hifi-headphones"
+path in mixer_paths.xml, so a usecase without one would apply no path at
+all and silently produce silence; E4 is what catches that.
+
+State machine: every route change starts a new generation and clears the
+evidence bitmap, so stale evidence can never promote a state; HIFI_ACTIVE
+requires the full fatal mask; a missing E7 (volume read-back) degrades
+instead of failing; the unified fallback restores the backend, returns
+"Volume" to 205 and lands in ERROR_FALLBACK, which cannot become
+HIFI_ACTIVE without a new generation and a fresh full read-back.  A route
+back to a non-HiFi device clears ERROR_FALLBACK to WIRED_STANDARD, so an
+ordinary headphone route is never reported as a system error.
+
+get_parameters("leo_hifi_status") exposes the snapshot read-only, ACDB
+reported as absent_expected.
+Baseline: MoKee/android_hardware_qcom_audio
+          mkq-mr1-caf-msm8994 @ 7f4cac748b6f62897294cdaece9d1aec27e1e927
+---
+--- a/hal/msm8974/leo_hifi.h
++++ b/hal/msm8974/leo_hifi.h
+@@ -232,6 +232,66 @@
+ 
+ /* Exit-side hook called from disable_audio_route(); never blocks teardown. */
+ void platform_leo_hifi_backend_exit(void *platform, int snd_device);
++
++/* ---------------------------------------------------------------------- *
++ * WCD bypass detection, state machine and read-only status
++ * ---------------------------------------------------------------------- */
++
++/* Evidence bits, mirrored into the leo_hifi_status string. */
++#define LEO_EV_E2       (1u << 1)   /* HiFi snd_device selected               */
++#define LEO_EV_E3       (1u << 2)   /* ES9018 bound on I2C 6-0048             */
++#define LEO_EV_E4       (1u << 3)   /* a QUAT_MI2S_RX front end is On         */
++#define LEO_EV_E5       (1u << 4)   /* no complete WCD path to the jack       */
++#define LEO_EV_E6       (1u << 5)   /* QUAT backend read back as targeted     */
++#define LEO_EV_E7       (1u << 6)   /* ES9018 Volume read back as expected    */
++#define LEO_EV_E9       (1u << 7)   /* no control write failure this gen      */
++
++#define LEO_EV_FATAL_MASK \
++    (LEO_EV_E2 | LEO_EV_E3 | LEO_EV_E4 | LEO_EV_E5 | LEO_EV_E6 | LEO_EV_E9)
++
++/*
++ * Bypass observation bits.  These describe the WCD9330 chain
++ *   MultiMediaN -> SLIMBUS_0_RX -> SLIM RXn MUX -> RXn MIX1 INP1
++ *                -> CLASS_H_DSM MUX -> HPHL DAC Switch -> jack
++ * Only LEO_BP_OUTLET is fatal on its own: M2 proved on the real device that
++ * cutting the analog outlet silences the WCD path even while
++ * SLIMBUS_0_RX <- MultiMedia5 is still On.  Everything else is recorded as a
++ * bypass *attempt*, which is diagnostic, not proof of audible sound.
++ */
++#define LEO_BP_SLIM_FE  (1u << 0)   /* some SLIMBUS_0_RX <- MultiMediaN On    */
++#define LEO_BP_MUX_LIVE (1u << 1)   /* SLIM RX1 or RX2 MUX != ZERO            */
++#define LEO_BP_MIX_LIVE (1u << 2)   /* RX1 or RX2 MIX1 INP1 != ZERO           */
++#define LEO_BP_CLASSH   (1u << 3)   /* CLASS_H_DSM MUX != ZERO                */
++#define LEO_BP_OUTLET   (1u << 4)   /* HPHL DAC Switch On -- FATAL            */
+ 
++#define LEO_BP_FATAL_MASK   (LEO_BP_OUTLET)
+ 
++/*
++ * Observe the WCD chain.  Returns true when no FATAL bypass condition is
++ * present.  Always fills lh->bypass with everything it saw, so a non-fatal
++ * "bypass attempt" is visible in the status string without changing state.
++ *
++ * This is only meaningful while the HiFi device is selected.  In the ordinary
++ * WIRED_STANDARD case the WCD chain is supposed to be live, and the state
++ * machine does not call this at all.
++ */
++bool leo_hifi_check_bypass(struct leo_hifi *lh);
++
++/*
++ * State machine entry points.  leo_hifi_on_route() runs the full read-back
++ * sequence and decides between HIFI_ACTIVE, HIFI_DEGRADED and
++ * ERROR_FALLBACK; it never advances to HIFI_ACTIVE on stale evidence because
++ * every call starts a new generation and re-reads everything.
++ */
++void leo_hifi_on_route(struct leo_hifi *lh, bool to_hifi_device);
++void leo_hifi_on_route_off(struct leo_hifi *lh);
++
++/* Render the read-only status snapshot into buf (never fails). */
++void leo_hifi_status_string(struct leo_hifi *lh, char *buf, size_t len);
++
++/* Thin wrappers defined in platform.c and called from audio_hw.c. */
++void platform_leo_hifi_route_enabled(void *platform, int snd_device);
++void platform_leo_hifi_route_disabled(void *platform, int snd_device);
++
++
+ #endif /* LEO_HIFI_H */
+--- a/hal/msm8974/leo_hifi.c
++++ b/hal/msm8974/leo_hifi.c
+@@ -421,4 +421,244 @@
+           old ? "true" : "false", enable ? "true" : "false", lh->supported);
+ 
+     return (old != enable);
++}
++
++static const char *leo_state_name(leo_hifi_state_t s)
++{
++    switch (s) {
++    case LEO_HIFI_IDLE:            return "idle";
++    case LEO_HIFI_SPEAKER:         return "speaker";
++    case LEO_HIFI_WIRED_STANDARD:  return "wired_standard";
++    case LEO_HIFI_ARMING:          return "arming";
++    case LEO_HIFI_ACTIVE:          return "hifi_active";
++    case LEO_HIFI_DEGRADED:        return "hifi_degraded";
++    case LEO_HIFI_ERROR_FALLBACK:  return "error_fallback";
++    default:                       return "unknown";
++    }
++}
++
++/* An enum control counts as "live" when it is resolvable and not ZERO. */
++static bool leo_enum_is_live(struct mixer_ctl *ctl)
++{
++    const char *s;
++    int idx;
++
++    if (ctl == NULL)
++        return false;
++
++    idx = mixer_ctl_get_value(ctl, 0);
++    if (idx < 0)
++        return false;
++
++    s = mixer_ctl_get_enum_string(ctl, (unsigned int)idx);
++    return (s != NULL && strcmp(s, "ZERO") != 0);
++}
++
++bool leo_hifi_check_bypass(struct leo_hifi *lh)
++{
++    unsigned int bp = 0;
++    int i;
++    int v;
++
++    /* (1) digital front end feeding the WCD backend */
++    for (i = 0; i < LEO_HIFI_MM_COUNT; i++) {
++        if (lh->ctl_slim_mm[i] == NULL)
++            continue;
++        v = mixer_ctl_get_value(lh->ctl_slim_mm[i], 0);
++        if (v > 0) {
++            ALOGD("%s: SLIMBUS_0_RX Audio Mixer MultiMedia%d is On",
++                  __func__, i + 1);
++            bp |= LEO_BP_SLIM_FE;
++        }
++    }
++
++    /* (2) SLIM receive muxes, both channels */
++    if (leo_enum_is_live(lh->ctl_slim_rx1_mux) ||
++        leo_enum_is_live(lh->ctl_slim_rx2_mux))
++        bp |= LEO_BP_MUX_LIVE;
++
++    /* (3) interpolator inputs, both channels (optional controls) */
++    if (leo_enum_is_live(lh->ctl_rx1_mix1_inp1) ||
++        leo_enum_is_live(lh->ctl_rx2_mix1_inp1))
++        bp |= LEO_BP_MIX_LIVE;
++
++    /* (4) Class-H DSM mux -- this is what gates the RIGHT channel DAC */
++    if (leo_enum_is_live(lh->ctl_class_h_mux))
++        bp |= LEO_BP_CLASSH;
++
++    /* (5) the analog outlet itself: the decisive gate */
++    if (lh->ctl_hphl_dac != NULL) {
++        v = mixer_ctl_get_value(lh->ctl_hphl_dac, 0);
++        if (v > 0)
++            bp |= LEO_BP_OUTLET;
++    }
++
++    lh->bypass = bp;
++
++    if (bp & LEO_BP_FATAL_MASK) {
++        ALOGE("%s: FATAL WCD bypass: the analog outlet is open "
++              "(bypass mask 0x%x)", __func__, bp);
++        lh->fail_code = LEO_FAIL_WCD_BYPASS;
++        return false;
++    }
++
++    if (bp != 0)
++        ALOGW("%s: bypass attempt observed but the analog outlet is cut "
++              "(mask 0x%x); not audible, recorded only", __func__, bp);
++
++    return true;
++}
++
++static bool leo_quat_front_end_live(struct leo_hifi *lh)
++{
++    int i;
++    int v;
++
++    for (i = 0; i < LEO_HIFI_MM_COUNT; i++) {
++        if (lh->ctl_quat_mm[i] == NULL)
++            continue;
++        v = mixer_ctl_get_value(lh->ctl_quat_mm[i], 0);
++        if (v > 0) {
++            ALOGI("%s: QUAT_MI2S_RX Audio Mixer MultiMedia%d is On",
++                  __func__, i + 1);
++            return true;
++        }
++    }
++
++    ALOGE("%s: no QUAT_MI2S_RX front end is routed; the mixer path did not "
++          "take effect", __func__);
++    return false;
++}
++
++static void leo_hifi_fallback(struct leo_hifi *lh)
++{
++    /*
++     * Unified fallback.  Stop writing, undo what this generation wrote in
++     * reverse order, and leave the controller in a state that requires a
++     * fresh generation (and a fresh full read-back) before it may claim
++     * HIFI_ACTIVE again.
++     *
++     * The caller (enable_audio_route) is on the select_devices() path; the
++     * actual return to SND_DEVICE_OUT_HEADPHONES happens on the next route
++     * decision, which is why ERROR_FALLBACK is a terminal state until then.
++     */
++    (void) leo_hifi_set_backend(lh);
++    if (lh->vol_applied)
++        (void) leo_hifi_restore_volume_floor(lh);
++
++    lh->generation++;
++    lh->effective = LEO_HIFI_ERROR_FALLBACK;
++    ALOGE("%s: gen=%llu fail=%d evidence=0x%x bypass=0x%x -> error_fallback",
++          __func__, lh->generation, lh->fail_code, lh->evidence, lh->bypass);
+ }
++
++void leo_hifi_on_route(struct leo_hifi *lh, bool to_hifi_device)
++{
++    int vol[2];
++
++    if (!to_hifi_device) {
++        /*
++         * Ordinary wired/speaker route.  The WCD chain being live here is
++         * normal and must never be reported as an error.
++         */
++        if (lh->effective == LEO_HIFI_ACTIVE ||
++            lh->effective == LEO_HIFI_DEGRADED ||
++            lh->effective == LEO_HIFI_ARMING ||
++            lh->effective == LEO_HIFI_ERROR_FALLBACK) {
++            lh->generation++;
++            lh->evidence = 0;
++            lh->bypass = 0;
++            lh->effective = LEO_HIFI_WIRED_STANDARD;
++            ALOGI("%s: gen=%llu -> wired_standard", __func__, lh->generation);
++        }
++        return;
++    }
++
++    lh->generation++;
++    lh->evidence = 0;
++    lh->bypass = 0;
++    lh->fail_code = LEO_FAIL_NONE;
++    lh->effective = LEO_HIFI_ARMING;
++
++    lh->evidence |= LEO_EV_E2;
++    if (lh->supported)
++        lh->evidence |= LEO_EV_E3;   /* proven by the probe that let us here */
++    lh->evidence |= LEO_EV_E9;
++
++    /* E4: the mixer path really enabled a QUAT front end. */
++    if (leo_quat_front_end_live(lh))
++        lh->evidence |= LEO_EV_E4;
++    else
++        lh->fail_code = LEO_FAIL_QUAT_NOT_ROUTED;
++
++    /* E6: the backend was written before the route; confirm it stuck. */
++    if (leo_hifi_set_backend(lh) == 0)
++        lh->evidence |= LEO_EV_E6;
++
++    /* E7: the volume control must read back inside the allowed window. */
++    if (leo_hifi_read_volume(lh, vol) == 0 &&
++        vol[0] == vol[1] &&
++        vol[0] >= LEO_HIFI_CTL_FLOOR && vol[0] <= LEO_HIFI_CTL_CEIL)
++        lh->evidence |= LEO_EV_E7;
++
++    /* E5: the decisive one -- no complete WCD path to the jack. */
++    if (leo_hifi_check_bypass(lh))
++        lh->evidence |= LEO_EV_E5;
++
++    if ((lh->evidence & LEO_EV_FATAL_MASK) != LEO_EV_FATAL_MASK) {
++        leo_hifi_fallback(lh);
++        return;
++    }
++
++    if ((lh->evidence & LEO_EV_E7) == 0) {
++        lh->effective = LEO_HIFI_DEGRADED;
++        ALOGW("%s: gen=%llu evidence=0x%x bypass=0x%x -> hifi_degraded",
++              __func__, lh->generation, lh->evidence, lh->bypass);
++        return;
++    }
++
++    lh->effective = LEO_HIFI_ACTIVE;
++    ALOGI("%s: gen=%llu evidence=0x%x bypass=0x%x -> hifi_active",
++          __func__, lh->generation, lh->evidence, lh->bypass);
++}
++
++void leo_hifi_on_route_off(struct leo_hifi *lh)
++{
++    lh->generation++;
++    lh->evidence = 0;
++    lh->bypass = 0;
++    lh->effective = LEO_HIFI_IDLE;
++    ALOGI("%s: gen=%llu -> idle", __func__, lh->generation);
++}
++
++void leo_hifi_status_string(struct leo_hifi *lh, char *buf, size_t len)
++{
++    const char *sign = "";
++    int vol0 = -1, vol1 = -1, whole = 0, tenth = 0;
++
++    if (lh->supported && lh->ctl_volume != NULL) {
++        vol0 = mixer_ctl_get_value(lh->ctl_volume, 0);
++        vol1 = mixer_ctl_get_value(lh->ctl_volume, 1);
++    }
++    if (vol0 >= 0)
++        leo_hifi_ctl_to_db(vol0, &sign, &whole, &tenth);
++
++    /*
++     * Unknown values are reported as -1 / "unconfirmed"; we never fill in a
++     * guess.  The UI is required to display "unconfirmed" rather than infer
++     * effective state from requested state.
++     */
++    snprintf(buf, len,
++             "supported=%d;permanent_fail=%d;probes=%d;requested=%s;"
++             "effective=%s;gen=%llu;fail=%d;ev=0x%x;bypass=0x%x;"
++             "vol_ctl_l=%d;vol_ctl_r=%d;vol_db=%s%d.%d;vol_user=%d;"
++             "vol_applied=%d;backend=%s/%s;acdb=absent_expected",
++             lh->supported ? 1 : 0, lh->permanent_fail ? 1 : 0,
++             lh->probe_attempts,
++             lh->requested ? "hifi" : "standard",
++             leo_state_name(lh->effective),
++             lh->generation, lh->fail_code, lh->evidence, lh->bypass,
++             vol0, vol1, sign, whole, tenth, lh->vol_user,
++             lh->vol_applied ? 1 : 0,
++             LEO_HIFI_BITWIDTH_STR, LEO_HIFI_SAMPLERATE_STR);
++}
+--- a/hal/msm8974/platform.c
++++ b/hal/msm8974/platform.c
+@@ -3199,7 +3199,22 @@
+     char value[512] = {0};
+     int ret;
+     char *kv_pairs = NULL;
++
++#ifdef LEO_HIFI_ENABLED
++    ret = str_parms_get_str(query, LEO_PARAM_KEY_STATUS, value, sizeof(value));
++    if (ret >= 0) {
++        char status[512];
+ 
++        /*
++         * Read-only snapshot for Leo Home and the maintenance page.  Unknown
++         * fields are reported as -1 / "unconfirmed"; we never fill in a guess,
++         * and the UI must not infer effective state from requested state.
++         */
++        leo_hifi_status_string(&my_data->leo, status, sizeof(status));
++        str_parms_add_str(reply, LEO_PARAM_KEY_STATUS, status);
++    }
++#endif
++
+     ret = str_parms_get_str(query, AUDIO_PARAMETER_KEY_SLOWTALK,
+                             value, sizeof(value));
+     if (ret >= 0) {
+@@ -3524,6 +3539,34 @@
+ 
+ #ifdef LEO_HIFI_ENABLED
+ /*
++ * Leo: state-machine entry point, called from enable_audio_route() after the
++ * mixer path has been applied.  Runs the full read-back sequence, including
++ * the WCD bypass observation, and decides HIFI_ACTIVE / HIFI_DEGRADED /
++ * ERROR_FALLBACK.  Never advances on stale evidence: each call starts a new
++ * generation and re-reads everything.
++ */
++void platform_leo_hifi_route_enabled(void *platform, int snd_device)
++{
++    struct platform_data *my_data = (struct platform_data *)platform;
++
++    if (my_data == NULL)
++        return;
++
++    leo_hifi_on_route(&my_data->leo,
++                      snd_device == SND_DEVICE_OUT_LEO_HIFI_HEADPHONES);
++}
++
++void platform_leo_hifi_route_disabled(void *platform, int snd_device)
++{
++    struct platform_data *my_data = (struct platform_data *)platform;
++
++    if (my_data == NULL || snd_device != SND_DEVICE_OUT_LEO_HIFI_HEADPHONES)
++        return;
++
++    leo_hifi_on_route_off(&my_data->leo);
++}
++
++/*
+  * Leo: entry-side backend configuration, called from enable_snd_device() with
+  * the NEW sound device.
+  *
+--- a/hal/audio_hw.c
++++ b/hal/audio_hw.c
+@@ -556,6 +556,16 @@
+     platform_add_backend_name(mixer_path, snd_device);
+     ALOGD("%s: apply mixer and update path: %s", __func__, mixer_path);
+     audio_route_apply_and_update_path(adev->audio_route, mixer_path);
++#ifdef LEO_HIFI_ENABLED
++    /*
++     * Leo: the route has been applied; now prove it.  "Headphones make sound"
++     * is not evidence -- M2 showed on the real device that AudioFlinger will
++     * open SLIMBUS_0_RX <- MultiMedia5 behind our back.  Anything short of the
++     * full read-back set falls back so that what the user hears matches what
++     * the UI says.
++     */
++    platform_leo_hifi_route_enabled(adev->platform, (int)snd_device);
++#endif
+     ALOGV("%s: exit", __func__);
+     return 0;
+ }
+@@ -586,6 +596,7 @@
+      * deep-buffer stream.
+      */
+     platform_leo_hifi_backend_exit(adev->platform, (int)snd_device);
++    platform_leo_hifi_route_disabled(adev->platform, (int)snd_device);
+ #endif
+     audio_extn_sound_trigger_update_stream_status(usecase, ST_EVENT_STREAM_FREE);
+     audio_extn_listen_update_stream_status(usecase, LISTEN_EVENT_STREAM_FREE);
