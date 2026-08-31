@@ -1,5 +1,28 @@
 # Gate 2：真实 Android HAL 模块链接 — 完成
 
+> ## ⚠️ 更正（2026-08-31 09:2x，同日晚于本文其余内容）
+>
+> **本文 §1、§6、§7 关于首版产物的结论有实质错误，已由后续构建更正。原文保留在下方不删改。**
+>
+> 首版构建**漏配了 `-DHW_VARIANTS_ENABLED` 与源文件 `hal/msm8974/hw_info.c`**。
+> 该开关不在设备树里，而是 `hal/Android.mk:14` 在 msm8994 所属的 B-family 块中
+> **无条件设置**（`MULTIPLE_HW_VARIANTS_ENABLED := true`）；本文作者只核对了设备树的
+> `AUDIO_FEATURE_*` 开关，漏掉了 Android.mk 自身设置的这一行。
+>
+> 后果是**功能性的，不是形式上的**：
+> `audio_extn.h:189` 在未定义 `HW_VARIANTS_ENABLED` 时把 `hw_info_init()` 定义为 `(0)`，
+> 于是 `platform.c:1213` 的 `my_data->hw_info` 恒为 0，`if (!my_data->hw_info)` 恒真，
+> **整个 `else` 分支——包含 `audio_route_init()` 与 mixer XML 加载——成为死代码被消除。**
+>
+> 因此 §7「122 个未解析符号 100% 由设备库满足、缺失 0」虽然字面为真，
+> **却是一个假象**：符号之所以全部闭合，是因为一大块逻辑根本没有被编译进去。
+> 首版产物 `cac5689f…2ee44` 是一个 `platform_init` 残废的模块，**不具备任何参考价值**。
+>
+> 该缺陷由 agy 任务 J112 在做编译选项考古时发现并明确上报，随后由本人逐条核验证实。
+> 这是本轮委派中唯一一次外部代理推翻了协调者自己的结论。
+>
+> 更正后的结果见文末 §11。原 §1–§10 内容保留，作为错误记录。
+
 日期：2026-08-31（Asia/Shanghai）。轮值架构师：Claude（`LEO-HO-20260830-223623-CODEX-TO-CLAUDE`）。
 
 本文件是构建证据，**不是刷写、安装或 ROM 集成授权**。产物未安装、未加载、未在设备上运行。
@@ -195,3 +218,87 @@ bash $G/build.sh "$G" <AOSP头文件根> "$G/kheaders"
   -lprocessgroup -ltinyalsa -laudioroute -ltinycompress
 python3 $G/elfinfo.py $G/out/audio.primary.msm8994.so
 ```
+
+
+---
+
+# 11. 更正后的构建与结果（权威版本）
+
+## 11.1 修正内容
+
+在 §4 的编译配置基础上追加：
+
+- `-DHW_VARIANTS_ENABLED` 与源文件 `hal/msm8974/hw_info.c`（源文件数 11 → **12**）
+  —— 修正 §「更正」所述的死代码消除缺陷
+- `-D_FORTIFY_SOURCE=2 -fstack-protector-strong` —— 依 agy J112 的二进制考古
+  （出厂模块含 `__memcpy_chk` / `__strlcat_chk` / `__strlcpy_chk` / `__vsnprintf_chk`；
+  `__stack_chk_fail` 调用计数：出厂 75，`-fstack-protector` 44，`-strong` 72，`-all` 276）
+- 链接加 `crtbegin_so.o` / `crtend_so.o`（真 bionic 源码编出）与 `--gc-sections`
+  —— 依 agy J111。`--gc-sections` 是关键：它回收未被调用的 `atexit` / `pthread_atfork`，
+  使新增未解析符号只有 `__cxa_finalize` 一个，**与出厂模块「有 `__cxa_finalize`、
+  无 `__cxa_atexit`」精确一致**。另两个 agy 任务未加 `--gc-sections`，多引入了
+  `__cxa_atexit` 与 `__register_atfork`，与出厂不符。
+
+## 11.2 死代码消除的实证
+
+| 符号 | 修正前 | 修正后 | 出厂 |
+|---|---|---|---|
+| `audio_route_init` | 无 | **有** | 有 |
+| `dlerror` | 无 | **有** | 有 |
+| `malloc` | 无 | **有** | 有 |
+| `__android_log_assert` | 无 | **有** | 有 |
+| `__cxa_finalize` | 无 | **有** | 有 |
+| `__open_2` | 无 | **有**（FORTIFY 后） | 有 |
+
+## 11.3 更正后产物与出厂模块的差分
+
+产物 SHA256 `7f8b2e7388597b91d0a31caf89080089d5849e2ed1d81080a162d42272925034`
+
+| 检查 | 结果 |
+|---|---|
+| SONAME | 一致 |
+| `DT_NEEDED` | 11 项（出厂 12，多 `libc++.so`，属 Android 构建系统默认追加） |
+| 导出 `HMI` | 是 |
+| 导出符号交集 | **183**（首版 180） |
+| `.fini_array` | 有，2 项 `__on_dlclose` / `__on_dlclose_late` |
+| 未解析符号闭合 | **0 个不可由设备 12 库满足** |
+
+双向符号差异已 100% 归因：
+
+- **出厂有本次无：1 个** —— `memset`
+- **本次有出厂无：12 个** —— 7 个 `__aeabi_*`（`idiv`/`ldivmod`/`memclr`/`memclr8`/
+  `memset8`/`uidiv`/`uidivmod`）与上一条是同一件事的两面：Apple clang 21 把 `memset`
+  等降级为 ARM EABI 内建，出厂用的 Android clang 保留了 `memset`；
+  5 个为 M3 新引入（`mixer_ctl_get_enum_string`、`mixer_ctl_get_value`、
+  `property_set`、`stat`、`strerror`）
+
+## 11.4 feature-OFF 等价性（agy J113，已由本人独立复核）
+
+打过 5 个 M3 补丁但关闭 `LEO_HIFI_ENABLED` 的树，与未打补丁的 `7f4cac74` 干净树，
+**分别构建链接后的 `.so` 逐字节相同**，SHA256 `7bd528bcd181a09352b254cc4e9db6e9f5e6f7bc02f6929e09ac1c33a6255b39`。
+
+复核方法：先证伪「两棵树其实是同一棵」这一假阳性路径（实测两树有 4 个改动文件 +
+2 个新增文件），再逐个 `cmp` 10 个 `.o` 全部相同、最终 `.so` `cmp` 逐字节相同、
+`leo_hifi.o` 正确缺席。
+
+项目此前只在 **token 层**验证过 feature-OFF 等价，**本次是链接产物层的逐字节等价**。
+
+## 11.5 仍未闭合
+
+1. `memset` ↔ `__aeabi_*` 的编译器降级差异 —— 属工具链差异（Apple clang 21 vs
+   Android clang），不是配置错误，除非换用 Android 官方 clang 否则无法消除。
+2. `libc++.so` 未出现在 `DT_NEEDED` —— 出厂由构建系统默认追加，本模块是纯 C，
+   未验证其必要性。
+3. **未加载验证。** 产物从未被 `dlopen`、从未由 audioserver 加载、从未在设备上运行。
+   **链接成功 ≠ 可加载 ≠ 可播放。**
+4. 出厂模块另有 `.note.gnu.build-id` 与 `.gnu_debugdata` 两个 section，本次产物无。
+5. Gate 3（ROM 集成、离线镜像审计、回退材料）全部未开始。
+
+## 11.6 方法论教训
+
+首版那个错误能通过全部形式检查——编译无错、链接成功、SONAME 正确、导出 `HMI`、
+符号闭合 100%——**却是一个功能上残废的模块**。
+
+「符号全部闭合」在存在死代码消除时是一个**危险的伪指标**：缺的代码不会产生
+未解析符号，只会安静地消失。今后凡以符号闭合作为门禁，必须同时核对
+**关键符号是否存在**（如本例的 `audio_route_init`），而不只看「有没有解析不了的」。

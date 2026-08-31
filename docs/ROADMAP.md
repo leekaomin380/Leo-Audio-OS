@@ -89,8 +89,15 @@
     11/11 源文件用真实 AOSP 头文件与设备实际内核（3.10.108，与设备 `/proc/version`
     吻合）的 uapi 头编译通过，surrogate 头文件依赖已消除；`ld.lld` 链接出
     `ELF 32-bit ARM EABI5 shared object`，SONAME 与 `DT_NEEDED` 同出厂模块一致，
-    导出 `HMI`，**122 个未解析符号 100% 由设备自身 12 个运行库满足，缺失 0**，
-    并首次导出 `leo_hifi_*` 8 个控制器符号。
+    导出 `HMI`，并首次导出 `leo_hifi_*` 控制器符号。
+    **同日更正**：首版构建漏配 `-DHW_VARIANTS_ENABLED` 与 `hw_info.c`，
+    致 `hw_info_init()` 恒返回 0、`platform_init()` 中含 `audio_route_init()` 的整个
+    分支被死代码消除——该版「符号闭合缺失 0」是假象，缺的代码不产生未解析符号。
+    缺陷由 agy J112 发现并经复核证实。更正后 12 个源文件、加 FORTIFY 与 crt，
+    `audio_route_init`/`dlerror`/`malloc`/`__open_2` 全部复活，
+    双向符号差异收敛到「1 个 `memset` ↔ 7 个 `__aeabi_*` 的工具链降级差异 + 5 个 M3 新符号」，
+    100% 可归因，符号闭合仍为 0 个不可满足。
+    另经 agy J113 并复核：feature-OFF 下打补丁树与干净树的 `.so` **逐字节相同**。
     `use_case_table` 悬案同时闭合：实测 10 个编译单元 → 9 个重复定义（此前记录的
     「×11」不准），`-fcommon` 零源码改动即复现出厂语义。
     详见 `docs/reviews/2026-08-31-gate2-real-hal-module-link.md`。
