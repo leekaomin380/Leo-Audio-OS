@@ -1,0 +1,75 @@
+{
+  "path": "hardware/qcom-caf/msm8994/audio",
+  "base_commit": "7f4cac748b6f62897294cdaece9d1aec27e1e927",
+  "patches": [
+    {
+      "path": "patches/phase5b-m3/0001-leo-add-symbolic-hifi-device.patch",
+      "sha256": "62528fc088bf55d1a8d92fe9d6115ac89888ec7b9f7c06aae7181358582679c1"
+    },
+    {
+      "path": "patches/phase5b-m3/0002-leo-add-hifi-route-controller.patch",
+      "sha256": "019397aa9437c7e56d4998d5adf78ee95459ec7c4f94f1f22ded2e7774a7b2af"
+    },
+    {
+      "path": "patches/phase5b-m3/0003-leo-add-volume-state-and-readback.patch",
+      "sha256": "7a89eb10c21400bebd106bf83933ef73df1d29c02989b0adefb980c6db6e89ab"
+    },
+    {
+      "path": "patches/phase5b-m3/0004-leo-make-quat-backend-deterministic.patch",
+      "sha256": "9409330bdb2cd57494c4c75938bf6e057853550d6d9ddb3ed40ec8ed5cedec66"
+    },
+    {
+      "path": "patches/phase5b-m3/0005-leo-add-status-and-fallback.patch",
+      "sha256": "13d624a7496778512666e90209e9c5eb5ec1592ccb099a6b1724c3fa4a0caa2c"
+    },
+    {
+      "path": "patches/phase5b-hifi-ui/0006-hal-schema2.patch",
+      "sha256": "ab8bfb5a266493a18cfee9631d89c9b030552dbfe1c2c96b9f9d88ebe4b67bcf"
+    },
+    {
+      "path": "patches/phase5b-hifi-ui/0007-hal-schema3-guard.patch",
+      "sha256": "4bbdadaeda639385a5a4785cda7f3f20407c0c580c7285baad051041466765fb"
+    },
+    {
+      "path": "patches/phase5b-hifi-daily/0008-schema4-volume-recovery.patch",
+      "sha256": "d692d1d79ebb207162753820112436f78e558948a7ea1dd4cb51f09843ec2392"
+    }
+  ],
+  "files": {
+    "hal/Android.mk": {
+      "sha256": "afc38a65f0723b47373dfcb28203e3b9de1e4a7f62b4a72c906a52af5bafd397",
+      "mode": "100644",
+      "kind": "tracked"
+    },
+    "hal/audio_hw.c": {
+      "sha256": "888170d9fdbd9a8cf8d892724bf57c7bf9bba86ad3814459605bcd397908e7ad",
+      "mode": "100644",
+      "kind": "tracked"
+    },
+    "hal/msm8974/leo_hifi.c": {
+      "sha256": "4df6d7187f7ba7d8e0b4e548d5e97aca107e8367dcaebc5bf1ed2f594b03188d",
+      "mode": "100644",
+      "kind": "untracked"
+    },
+    "hal/msm8974/leo_hifi.h": {
+      "sha256": "42e9219bf86a0b5d7a70440972405cf4a62cd4c9e3b5e1ee9cb236c4731113ad",
+      "mode": "100644",
+      "kind": "untracked"
+    },
+    "hal/msm8974/leo_hifi_flow.h": {
+      "sha256": "08d108a9610accdcf43e03c905f393c31f44ec70099e54419edae2930372f1dc",
+      "mode": "100644",
+      "kind": "untracked"
+    },
+    "hal/msm8974/platform.c": {
+      "sha256": "a55332e3d7f53d65bd18a9ea09fe2a5546701fa3b446f531780f705ac67ce1a9",
+      "mode": "100644",
+      "kind": "tracked"
+    },
+    "hal/msm8974/platform.h": {
+      "sha256": "3e609809d48d2ffe8eb42e0431cf78093aa2f586987ae4d2f8172570570bf390",
+      "mode": "100644",
+      "kind": "tracked"
+    }
+  }
+}

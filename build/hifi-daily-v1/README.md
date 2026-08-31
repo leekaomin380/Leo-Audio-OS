@@ -34,9 +34,19 @@
 - 已启动绑定本次同步 InvocationID 的接续任务：等待同步终止并检查完整输入报告，然后由 baseline 入口再次核验真实源码、全部 copyfile/linkfile 和产品变量，才调用上游 `soong_ui.bash --make-mode -j1 audio.primary.msm8994`。使用独立 OUT_DIR，禁止缺失依赖放行，保留 arm64/armv8-a、32 位 armv8-a 和 Sound Trigger；结束后仍需 ABI 审核，不自动部署手机。
 - 接续任务本身有 8 小时上限，失败就停止。它目前处于等待状态；正式 baseline、OFF、ON 和设备验收仍未完成。具体 unit 标识、私有路径、脚本与现场日志保存在交付证据。
 
-## 仅在现有主机不能完成时考虑云资源
+### 源码核验与基线执行修正
 
 21:50 补充：完整 783 项同步及源码核验已通过。baseline 第一次尝试在 copy/link 核验时停止：原 MoKee manifest 将 `frameworks/support/README.md` 的来源错误地挂在 `sdk/current/androidx-README.md`。已核实原始输入文件也如此，正确文件存在于锁定的 `prebuilts/sdk`，Git blob 为 `b7ac07ed1ed1ffc43e12662ae419258c36d56bc7`。本清单仅将这一 linkfile 移到正确项目下，`source-lock.json` 记录修正；783 项源码记录完全不变。第一次失败证据保留，修正后使用新的 baseline 输出目录。
+
+22:09 补充：修正清单后，783 项源码、36 项复制/链接及产品变量核验均通过。第二次尝试暴露执行入口遗漏：直接调用 Soong 时未设置 `MK_BUILD=leo`，使 `build/make/core/config.mk` 跳过 BoardConfigMoKee，最终内核头文件生成器报 `PATH_OVERRIDE_SOONG` 未知。原版 `envsetup.sh` 的 `check_product` 会从 `mokee_leo` 导出 `MK_BUILD=leo`。第三次尝试按原脚本补齐该值，并在编译前检查实际 `MK_BUILD`、`SOONG_CONFIG_NAMESPACES` 及 `mokeeVarsPlugin` 导出项。未修改 Android 源码或删减头文件/功能。第三次使用全新输出目录，已通过前置核验并进入正式 HAL 构建。其 stdout/stderr 写入服务器 journal，不依赖 SSH 输出通道保持连接。正式构建入口必须通过正常 `lunch` 设置，或完整、明确地复现包括 `MK_BUILD` 的环境；不能只设置 TARGET_PRODUCT 和 TARGET_BUILD_VARIANT。
+
+22:19 补充：生成 Soong 全局依赖图时，3GiB RAM 加原 2GiB/3GiB 任务 swap 配额均接近耗尽。确认现有 NVMe ext4 磁盘仍有约 329GiB 空余、原进程未 OOM 后，新建工程专属 8GiB 临时 swap 文件，权限 root:root 0600；未修改 fstab 或既有 swap。仅将本次 unit 的 MemorySwapMax 调整为 8GiB，物理内存仍限 3GiB。该临时文件必须在全部构建进程退出后，核对路径、设备号和 inode，单独 swapoff 并确认不在 /proc/swaps 后回收；失败时保留并报告，禁止 swapoff -a。记录在交付证据 temporary-build-swap.json。
+
+### 补丁版本的严格输入核验
+
+`--daily-hal-overlay` 只允许 `hal-overlay.json` 锁定的 HAL 基线与 8 个补丁：4 个修改文件、3 个新增文件，逐一检查 SHA256、文件类型和 Git 文件集合；拒绝额外文件、部分补丁、暂存改动及可隐藏改动的索引标记。其他 782 个仓库仍要求固定 HEAD 且干净。报告标记 `PATCHED_INPUTS_RECORDED`，不会把补丁树称为干净基线。21 个临时 Git 场景已通过，并核验了真实的 8 补丁重放目录。此检查不替代最终编译参数及 ABI 验收，也不覆盖全部 Git 忽略文件。
+
+## 仅在现有主机不能完成时考虑云资源
 
 建议临时云构建的**预算上限为人民币 100 元，尚未获得金额确认**；这不是成交报价。购买前必须核对实例、系统盘/数据盘、网络和公网 IP 的总价与库存，并绑定运行时间上限与退出策略。仅关机可能继续收磁盘/IP 费用；完成后先回收并校验产物和必要日志，再释放本次新建资源。不启用自动续费，不删除用户原有资源。
 
