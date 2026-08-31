@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="leo_hifi_label">HIFI</string>
+    <string name="leo_hifi_unavailable">Backend unavailable</string>
+    <string name="leo_hifi_waiting">Waiting for confirmation</string>
+    <string name="leo_hifi_active">ESS active · 48 kHz</string>
+    <string name="leo_hifi_error">Request or route error</string>
+    <string name="leo_hifi_volume_title">HiFi DAC volume</string>
+    <string name="leo_hifi_apply">Apply selected volume</string>
+    <string name="leo_hifi_not_active">Play audio through HiFi to adjust</string>
+    <string name="leo_hifi_standby">Enabled · standby</string>
+    <string name="leo_hifi_off">Off</string>
+    <string name="leo_hifi_volume_warning">0 is not mute. Moving the slider does not apply volume. Applying any value may raise the factory level. Start low.</string>
+    <string name="leo_hifi_volume_readback">Selected: %1$d / 60 · DAC readback: %2$d / %3$d</string>
+</resources>
