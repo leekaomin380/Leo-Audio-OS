@@ -51,3 +51,11 @@
 建议临时云构建的**预算上限为人民币 100 元，尚未获得金额确认**；这不是成交报价。购买前必须核对实例、系统盘/数据盘、网络和公网 IP 的总价与库存，并绑定运行时间上限与退出策略。仅关机可能继续收磁盘/IP 费用；完成后先回收并校验产物和必要日志，再释放本次新建资源。不启用自动续费，不删除用户原有资源。
 
 网络不可只看“入站免费”。腾讯云的[带宽说明](https://cloud.tencent.com/document/product/213/43793)与[网络价格](https://cloud.tencent.com/document/product/213/113026)需结合所选实例核实；不采用“免费即不限速”的旧估算。100GB 在 10Mbps 下理想传输下限约 22.2 小时，不能按短时构建估价。
+
+### 22:42 基线续建：只修复旧 GCC 的主机启动入口
+
+第三次基线已完成 Soong/Make 规则生成及约 2958 个依赖步骤，在 `generated_kernel_includes` 失败；不是 OOM（峰值 RAM 3GiB、swap 6.6GiB）。旧 GCC wrapper 的 shebang 为 `/usr/bin/python`，Debian 缺少该路径；内核 `gcc-wrapper.py` 把错误写到 stdout，`LIBGCC` 因此含冒号错误文本，引发 Makefile:800 的 multiple target patterns。`make -pn` 数据库复现并确认了该链条。
+
+工程目录内的 `kernel-gcc-compat/bin` 为原工具提供链接；仅五个 Python wrapper 改由小型 shell 入口明确调用已锁定的自带 Python，再执行原 wrapper，所有参数原样传入。原编译器、libgcc 与源码未修改，未创建 `/usr/bin/python`。GCC 版本和 libgcc 路径探针通过；独立 `headers_install` 约 13 秒、58.4MiB 内存完成。
+
+正式续建入口显式设置 `KERNEL_TOOLCHAIN`，并要求产品 dumpvars 和导出的 `KERNEL_CROSS_COMPILE` 指向已核验的兼容入口。复用同一 baseline OUT_DIR，旧失败日志和报告哈希保留，重新审计全部源码；这属于有记录的续建，不能声称是第二个完全从空目录开始的构建。并行任务从 1 改为 3，Go 主机工具设置 GOGC=20；运行约束为 3 核、3GiB RAM、8GiB swap、7 小时上限、低优先级。后续 OFF/ON 必须固定相同的主机兼容入口和目标工具链，再独立构建、核对实际规则及产物。
