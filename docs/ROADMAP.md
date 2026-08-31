@@ -1,5 +1,10 @@
 # 长期路线图
 
+> **状态** 2026-08-31 08:31 · 复选框计数 **43/73** · 轮值架构师 Claude（接管编号
+> `LEO-HO-20260830-223623-CODEX-TO-CLAUDE`，确认书带 3 条异议）· 设备处于基线状态：
+> 2026-08-31 P1 首窗口已完整恢复并经用户确认，两 XML 原哈希、零覆盖挂载、Volume 205。
+> 本轮进展记录在下方 Phase 5B 各条目的缩进注中；**未闭合的复选框一律不勾**。
+
 ## Phase 0 — 立项与证据封存
 
 - [x] 确立名称、产品宣言和安全边界；
@@ -72,11 +77,46 @@
 - [x] 完成 ROM 启动链、分区、音频栈、组件和 SELinux 静态审计；
 - [x] 双重重建并回环验证未经修改的 M2 system/boot 离线候选，冻结实机写入路书；
 - [x] 在回滚闭合并取得临场授权后验证未经修改的 MoKee 实机基准；
+- [x] 持久化 MoKee `system/boot`，实机闭合 ESS 临时路由、R6 与 R7-A；M3 当前已通过
+  patch 契约、host mock、feature-OFF 等价、严格 ARM32 语法和 object 生成，详细裁决见
+  `docs/reviews/2026-08-29-m3-hifi-controller-progress-ruling.md`；
+- [ ] 完成 R7-B（`Volume 205 → 225 → 205`）与真实 Android HAL 模块链接；在两者完成前
+  M3 保持 NO-GO DEVICE；
+  - R7-B 本身已于 2026-08-30 在机闭合，且覆盖范围超出原定：实测阶梯
+    `213 → 229 → 241 → 247 → 205`，每档写入后读回校验、左右声道一致，
+    结束时由 `audio_route` 自动复位至 205。**本条仍不勾**，因为
+    「真实 Android HAL 模块链接」未做。
 - [ ] 差量恢复 ESS9018、Forte ACDB 和 QUAT MI2S 音频等价性；实机已证明缺口仅在 HAL 的输出设备选择。
+  - 2026-08-30 在机验证：纯 XML 改动即可完成 ESS 路由。日志
+    `out_snd_device(7: hifi-headphones)`、`apply mixer and update path:
+    deep-buffer-playback hifi-headphones`，后端 `S24_LE / KHZ_48`，
+    `HPHL DAC Switch=Off`。用 `mount --bind` 实现零分区写入、可逆。
+  - ACDB 问题已关闭：MIUI 的 `acdb_device_table[34] = -1` 是毒化哨兵，
+    两侧 `enable_snd_device` 均拒负值且不 apply route；MIUI 走 HiFi 时
+    snd_device 仍是 `HEADPHONES`（ACDB **10**）。**不要改 ACDB。**
+  - 仍未闭合：`compress-offload-playback2` 无 hifi 路径；开机持久化需分区
+    写入（未授权）；主观音质与 WCD 的差距未在等响条件下证伪。
+  - 2026-08-31 P1 首窗口（Apple Music / MM1 / deep-buffer）实机通过：基线读数首次
+    正面证实 `SLIMBUS_0_RX MM1=On` 而 QUAT 全关；A 版挂载后转为 `QUAT_MI2S_RX MM1=On`、
+    `HPHL DAC Switch=Off`、`RX1 MIX1 INP*=ZERO`（排除双通路假阳性）、后端 `S24_LE/KHZ_48`，
+    hw_ptr 逐帧吻合，用户确认双声道连续无失真，完整恢复且看门狗自然退出。**本条仍不勾**：
+    只覆盖一个应用一个 usecase，MM7、插拔、待机、重启、等响音质均未验收。
+    结果见 Codex 会话 `outputs/p1-window1-20260831-0750/RESULT.md`。
+  - 同窗口实机证实 QUAT 后端**无 teardown 复位点**（恢复后 `SampleRate` 仍停 `KHZ_48`），
+    与 M3 裁决书 §4.5 的静态结论一致。
 - [ ] 在 HAL 建立可读回验证的 Leo HiFi Controller，并向 Leo Home 提供只读状态显示。
+  - 只读状态显示已作为可独立运行的 APK 交付（带桌面图标，34 项单测通过），
+    但它不经由 HAL，走的是 USB 状态桥这一过渡实现。**HAL 侧的 Controller
+    未开始**，故本条不勾。
 - [ ] 建立采样率策略：对 44.1 kHz 家族优先验证端到端 44.1 kHz 输出，消除当前
   `44.1 → 48 kHz` 的非必要 SRC；对无法直通的混音、系统音或 48 kHz 内容明确记录
   SRC 原因与实际输出率，不作“全局 bit-perfect”承诺。
+  - 2026-08-31 静态裁决：**44.1 直通在当前 HAL 下无应用可达入口。**
+    `AUDIO_OUTPUT_FLAG_DIRECT_PCM` 在整个 HAL 源码树中只出现 1 次（`audio_hw.c:3106`
+    的判断本身），无任何代码路径置位它；`utils.c` 的 flag 解析表亦不收录该枚举，
+    配置层无法注入。策略层 profile 声明 44100 属误导性证据。
+    **目标措辞按用户 2026-08-31 裁定暂不修改**；轮值架构师的修改意见、理由与
+    盲改危害分析见 `docs/reviews/2026-08-31-44khz-passthrough-reachability-opinion.md`。
 
 ## Phase 5C — `leo_audio` 源码产品
 
