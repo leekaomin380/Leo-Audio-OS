@@ -47,19 +47,25 @@ say
 say "== 3. 写入 system 分区 =="
 shx_ 'mount -o rw,remount /' >/dev/null || die "remount rw 失败"
 replace_hal /data/local/tmp/cand.so "$CAND_SHA" || { bad "原子替换失败"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
-shx_ 'mount -o ro,remount /'    >/dev/null || { bad "remount ro 失败——分区仍可写"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
+remount_ro_or_reboot || { bad "无法恢复只读挂载"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
 postcheck "$CAND_SHA" || { bad "落盘核验失败"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; }
 
 say
 say "== 4. 重启服务（要求身份变化，不接受旧进程仍在跑）=="
-if ! service_cycle; then bad "重启未真正发生"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; fi
+if [ "$DID_REBOOT" -eq 1 ]; then
+  ok "已通过整机重启加载新 HAL，无需再次重启音频服务"
+elif ! service_cycle; then bad "重启未真正发生"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; fi
 ok "audioserver=$(as_pid)  hal_svc=$(hal_pid)"
 
 say
 say "== 5. 运行期核验 =="
 rc=0
 need "服务进程映射的正是新写入的 inode" "$(hal_inode)" "$(hal_mapped_inode)" || rc=1
-need "未发生重启"  "$BOOT_BEFORE" "$(boot_id)" || rc=1
+if [ "$DID_REBOOT" -eq 1 ]; then
+  [ "$BOOT_BEFORE" != "$(boot_id)" ] || { bad "预期整机重启但 boot_id 未变化"; rc=1; }
+else
+  need "未发生整机重启" "$BOOT_BEFORE" "$(boot_id)" || rc=1
+fi
 need "205 音量基线未被改动" "$VOLUME_BASELINE" "$(volume)" || rc=1
 need "lib64 未被动过" "$HAL64_SIZE" "$(sh_ "stat -c %s $HAL64")" || rc=1
 if [ $rc -ne 0 ]; then bad "运行期核验失败"; sh "$HERE/rollback-hal.sh" --force-restart; exit 1; fi

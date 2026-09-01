@@ -100,6 +100,37 @@ proc_ident() {
   case "$ident" in "$1":*) printf '%s' "$ident";; *) return 1;; esac
 }
 
+# Some system-as-root builds expose both rootfs and the ext4 system mount at
+# `/`. Toybox may select rootfs for `mount -o ro,remount /`, return failure,
+# and leave the real system mount writable. A reboot is the safe fallback: it
+# reloads the on-disk HAL and restores the boot-time read-only mount.
+DID_REBOOT=0
+device_reboot_wait() {
+  before=$(boot_id) || return 1
+  $ADB -s "$SERIAL" reboot >/dev/null 2>&1 || { bad "adb reboot 失败"; return 1; }
+  $ADB -s "$SERIAL" wait-for-device >/dev/null 2>&1 || { bad "等待设备重连失败"; return 1; }
+  i=0
+  while [ $i -lt "${LEO_BOOT_WAIT_STEPS:-120}" ]; do
+    sleep "${LEO_BOOT_WAIT_INTERVAL:-1}"; i=$((i+1))
+    [ "$(sh_ 'getprop sys.boot_completed')" = 1 ] || continue
+    after=$(boot_id) || continue
+    [ "$after" != "$before" ] || continue
+    [ "$(root_mount)" = ro ] || continue
+    DID_REBOOT=1
+    ok "设备重启后 system 已恢复只读"
+    return 0
+  done
+  bad "重启后未在时限内证明 boot_id 变化且 system 只读"
+  return 1
+}
+remount_ro_or_reboot() {
+  DID_REBOOT=0
+  sh_ 'mount -o ro,remount /' >/dev/null
+  if [ "$(root_mount)" = ro ]; then return 0; fi
+  say "  直接 remount-ro 未生效；按 system-as-root 安全路径重启并复核"
+  device_reboot_wait
+}
+
 preflight() {
   say "== 前置断言 =="
   rc=0

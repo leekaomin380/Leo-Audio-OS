@@ -3,6 +3,7 @@
 import hashlib, json, os, shlex, shutil, sys
 from pathlib import Path
 root=Path(os.environ['MOCK_ROOT']); state=json.loads((root/'state.json').read_text())
+state.setdefault('boot_seq',0)
 fault=os.environ.get('MOCK_FAIL',''); hal='/system/vendor/lib/hw/audio.primary.msm8994.so'
 def path(p):
     dest=(root/'fs'/p.lstrip('/')).resolve()
@@ -20,6 +21,12 @@ if args==['devices']:
     print('List of devices attached\nleo-test-device\tdevice');sys.exit(0)
 if args[:2]!=['-s','leo-test-device']: sys.exit(127)
 verb=args[2];args=args[3:]
+if verb=='wait-for-device': sys.exit(0)
+if verb=='reboot':
+    state['boot_seq']+=1;state['mount']='ro';state['cycles']+=1
+    state['as_pid']=(state['as_pid'] or 6378)+100;state['hal_pid']=(state['hal_pid'] or 6379)+100
+    state['mapped_inode']=path(hal).stat().st_ino
+    save();sys.exit(0)
 if verb=='push':
     if hit('push'): fail()
     dst=path(args[1]);dst.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(args[0],dst)
@@ -28,7 +35,8 @@ if verb=='push':
 if verb!='shell': sys.exit(127)
 c=' '.join(args);t=shlex.split(c)
 if t==['id','-u']: print('0')
-elif c=='cat /proc/sys/kernel/random/boot_id': print('11111111-2222-3333-4444-555555555555')
+elif c=='cat /proc/sys/kernel/random/boot_id': print(f'11111111-2222-3333-4444-{state["boot_seq"]:012d}')
+elif t==['getprop','sys.boot_completed']: print('1')
 elif t[:1]==['sha256sum']:
     try: print(sha(t[1])+'  '+t[1])
     except OSError: fail(1)

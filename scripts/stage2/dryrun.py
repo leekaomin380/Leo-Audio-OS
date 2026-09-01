@@ -7,7 +7,8 @@ stock_sha=hashlib.sha256(stock.read_bytes()).hexdigest()
 cases=[('preflight','',False,True,'stock'),('deploy','',True,True,'candidate')]
 cases += [(fault,fault,True,False,'stock') for fault in ['corrupt','remount','transport','hash_bad_rc',
           'restart_error','restart_noop','identity_empty','identity_error','pid_multiple',
-          'maps_missing','maps_mixed','remount_ro','volume','service']]
+          'maps_missing','maps_mixed','volume','service']]
+cases += [('remount-ro reboot fallback','remount_ro',True,True,'candidate')]
 cases += [('noop rollback','',False,True,'stock')]
 cases += [('noop rollback volume','baseline_volume',False,False,'stock')]
 failed=[]

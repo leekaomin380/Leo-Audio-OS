@@ -14,6 +14,7 @@ say "目标: $HAL 恢复为原版 $STOCK_SHA"
 
 cur=$(hal_sha); [ $? -eq 0 ] || die "无法读取现役 HAL（adb 调用失败）——人工介入"
 CHANGED=0
+DID_REBOOT=0
 
 if [ "$cur" = "$STOCK_SHA" ]; then
   ok "现役已是原版，未回写文件"
@@ -36,14 +37,21 @@ else
     [ "$(sh_ 'sha256sum /data/local/tmp/stock.so' | cut -d' ' -f1)" = "$STOCK_SHA" ] || die "push 后 hash 不符"
     replace_hal /data/local/tmp/stock.so "$STOCK_SHA" || die "回写失败"
   fi
-  shx_ 'mount -o ro,remount /'    >/dev/null || die "remount ro 失败——分区仍可写，人工介入"
+  remount_ro_or_reboot || die "无法恢复只读挂载，人工介入"
   CHANGED=1
+fi
+
+if [ "$(root_mount)" != ro ]; then
+  say "-- 现役文件虽为原版，但 system 仍可写；通过重启恢复只读并重新加载 --"
+  device_reboot_wait || die "无法恢复只读挂载，人工介入"
 fi
 
 say "-- 落盘核验 --"
 postcheck "$STOCK_SHA" || die "回退后文件属性或挂载状态不符——人工介入"
 
-if [ $CHANGED -eq 1 ] || [ $FORCE_RESTART -eq 1 ]; then
+if [ "$DID_REBOOT" -eq 1 ]; then
+  say "-- 已通过整机重启重新加载原版 HAL，无需再次重启音频服务 --"
+elif [ $CHANGED -eq 1 ] || [ $FORCE_RESTART -eq 1 ]; then
   say "-- 重启服务 --"
   service_cycle || die "服务身份未变化——重启未真正发生，人工介入"
   ok "audioserver=$(as_pid)  hal_svc=$(hal_pid)"

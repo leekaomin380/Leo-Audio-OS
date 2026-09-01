@@ -1,4 +1,4 @@
-> 2026-08-31 安全修订：严格读回/进程身份/设备号+inode，原子替换 HAL 文件，18 项有故障命中确认的隔离空跑。无改动回退也检查音量和实际映射。命令入口仍默认指向历史 schema3 诊断产物；不等于正式构建准入，也不是日用 schema4 安装器。未取得新产物的正式构建证据前不要执行部署。详见 ../../docs/verification/2026-08-31-daily-v1-checkpoint.md。
+> 2026-09-01 安全修订：严格读回/进程身份/设备号+inode，原子替换 HAL 文件，18 项有故障命中确认的隔离空跑。MoKee system-as-root 上直接 remount-ro 可能误选重复的 rootfs；脚本会核验真实挂载，必要时重启并要求 boot ID 变化、启动完成和 system 只读后才继续。无改动回退也检查音量和实际映射。命令入口仍默认指向历史 schema3 诊断产物；正式 schema4 候选由发布包绑定精确路径与 SHA。详见 ../../docs/verification/2026-08-31-daily-v1-checkpoint.md。
 
 # Stage 2 —— schema3 HAL 换装
 
